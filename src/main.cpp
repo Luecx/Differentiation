@@ -41,7 +41,7 @@ int main() {
 
 
     double first_thread_time = 0;
-    for(int t = 1; t < 16; t++){
+    for(int t = 1; t < 14; t++){
         for (int j = 0; j < 1; j++) {
             auto start = std::chrono::high_resolution_clock::now();
 
