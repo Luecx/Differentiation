@@ -5,110 +5,39 @@
 #ifndef DIFFERENTIATION_DENSELAYER_H
 #define DIFFERENTIATION_DENSELAYER_H
 
-#include "Data.h"
 #include "Function.h"
 #include "math.h"
-
-static int layer_id_counter;
-
-struct LayerInterface{
-protected:
-    int layerID;
-public:
-    virtual DataInterface* getBias   () = 0;
-    virtual DataInterface* getWeights() = 0;
-
-    virtual int getOutputSize() = 0;
-    virtual int getInputSize()  = 0;
-
-    virtual DataInterface* newOutputInstance() = 0;
-    virtual DataInterface* newWeightInstance() = 0;
-    virtual DataInterface* newBiasInstance() = 0;
-
-    void assignID(){
-        layerID = layer_id_counter ++;
-    }
-};
-
-
-class ThreadData {
-private:
-    int count;
+#include "Layer.h"
 
 
 
-public:
-
-    DataInterface** output;
-    DataInterface** output_gradient;
-    DataInterface** weight_gradient;
-    DataInterface**   bias_gradient;
-
-    ThreadData(std::vector<LayerInterface*> layers){
-        count = layers.size();
-        output              = new  DataInterface*[layers.size()];
-        output_gradient     = new  DataInterface*[layers.size()];
-        weight_gradient     = new  DataInterface*[layers.size()];
-        bias_gradient       = new  DataInterface*[layers.size()];
-        for(int i = 0; i < layers.size(); i++){
-            output[i]           = layers[i]->newOutputInstance();
-            output_gradient[i]  = layers[i]->newOutputInstance();
-            weight_gradient[i]  = layers[i]->newWeightInstance();
-            bias_gradient[i]    = layers[i]->newBiasInstance();
-        }
-    }
-
-    virtual ~ThreadData() {
-        for(int i = 0; i < count; i++){
-            _mm_free(output[i]);
-            _mm_free(output_gradient[i]);
-            _mm_free(weight_gradient[i]);
-            _mm_free(bias_gradient[i]);
-        }
-
-        _mm_free(output);
-        _mm_free(output_gradient);
-        _mm_free(weight_gradient);
-        _mm_free(bias_gradient);
-
-    }
-};
-
-
-template<int I, int O, template<int> class F>
+template<int I, int O, typename F>
 class DenseLayer : public LayerInterface{
 public:
-    Data<O,I> weights                   {};
-    Data<O  > bias                      {};
-    F   <O  > f                         {};
-
-    DenseLayer(Data<O,I> weights, Data<O> bias) {
-        this->weights = weights;
-        this->bias    = bias;
-        this->assignID();
-    }
+    Data weights                   {O,I};
+    Data bias                      {O};
+    F    f                         {};
 
     DenseLayer() {
         weights.randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
         bias   .randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
-        this->assignID();
+        assignID();
     }
-
 
     void apply(ThreadData* td){
        this->apply(
-               dynamic_cast<Data<I>*>(td->output[layerID-1]),
-               dynamic_cast<Data<O>*>(td->output[layerID]));
+               td->output[layerID-1],
+               td->output[layerID]);
     }
-    void apply(Data<I>  *in, Data<O> *out){
+    void apply(Data  *in, Data *out){
         matmul(&weights, in, out);
         out->add(&bias);
         f.apply(out, out);
     }
     void apply(Input    *in, ThreadData* td){
-        this->apply(in, dynamic_cast<Data<O>*>(td->output[layerID]));
+        this->apply(in, td->output[layerID]);
     }
-    void apply(Input    *in, Data<O> *out){
+    void apply(Input    *in, Data *out){
         matmul(&weights, in, out);
         out->add(&bias);
         f.apply(out, out);
@@ -117,164 +46,153 @@ public:
     void backprop(
             ThreadData* td){
         this->backprop(
-                dynamic_cast<Data<I  >*>(td->output[layerID-1]),
-                dynamic_cast<Data<O  >*>(td->output[layerID]),
-                dynamic_cast<Data<I  >*>(td->output_gradient[layerID-1]),
-                dynamic_cast<Data<O  >*>(td->output_gradient[layerID]),
-                dynamic_cast<Data<O,I>*>(td->weight_gradient[layerID]),
-                dynamic_cast<Data<O  >*>(td->bias_gradient[layerID]));
+                td->output[layerID-1],
+                td->output[layerID],
+                td->output_gradient[layerID-1],
+                td->output_gradient[layerID],
+                td->weight_gradient[layerID],
+                td->bias_gradient[layerID]);
     }
+
     void backprop(
-            Data<I> *in,
-            Data<O> *output,
-            Data<I> *in_grad,
-            Data<O> *out_grad,
-            Data<O,I> *weights_grad,
-            Data<O> *bias_grad){
+            Data *in,
+            Data *output,
+            Data *in_grad,
+            Data *out_grad,
+            Data *weights_grad,
+            Data *bias_grad){
 
         f.backprop(output, out_grad,out_grad);
         bias_grad->add(out_grad);
         matmul_backprop(&weights, in, weights_grad, in_grad, out_grad);
     }
+
     void backprop(
             Input *in,
             ThreadData* td){
         this->backprop(
                 in,
-                dynamic_cast<Data<O  >*>(td->output[layerID]),
-                dynamic_cast<Data<O  >*>(td->output_gradient[layerID]),
-                dynamic_cast<Data<O,I>*>(td->weight_gradient[layerID]),
-                dynamic_cast<Data<O  >*>(td->bias_gradient[layerID]));
+                td->output[layerID],
+                td->output_gradient[layerID],
+                td->weight_gradient[layerID],
+                td->bias_gradient[layerID]);
     }
+
     void backprop(
             Input     *in,
-            Data<O>   *output,
-            Data<O>   *out_grad,
-            Data<O,I> *weights_grad,
-            Data<O>   *bias_grad){
+            Data   *output,
+            Data   *out_grad,
+            Data   *weights_grad,
+            Data   *bias_grad){
         f.backprop(output, out_grad,out_grad);
         bias_grad->add(out_grad);
         matmul_backprop(in, weights_grad, out_grad);
     }
 
-    int getOutputSize() override {
+    void assignThreadData(ThreadData **td) override {
+
+    }
+    int  getOutputSize() override {
         return O;
     }
-    int getInputSize() override {
+    int  getInputSize() override {
         return I;
     }
 
-    DataInterface *getBias() override {
+    Data *getBias() override {
         return &bias;
     }
-    DataInterface *getWeights() override {
+    Data *getWeights() override {
         return &weights;
     }
-    DataInterface *newOutputInstance() override {
-        return new (std::align_val_t(32))  Data<O>{};
+    Data *newOutputInstance() override {
+        return new Data(O);
     }
-    DataInterface *newWeightInstance() override {
-        return new (std::align_val_t(32)) Data<O,I>{};
+    Data *newWeightInstance() override {
+        return new Data(O,I);
     }
-    DataInterface *newBiasInstance() override {
-        return new (std::align_val_t(32)) Data<O>{};
+    Data *newBiasInstance() override {
+        return new Data(O);
     }
 };
 
 
-template<int I, int O, template<int> class F>
+template<int I, int O, typename F>
 class DuplicateDenseLayer : public LayerInterface{
 public:
-    Data<O,I> weights                   {};
-    Data<O  > bias                      {};
-    F   <O*2> f                         {};
-    Data<O,I> weights_grad[N_THREADS]   {};
-    Data<O  >    bias_grad[N_THREADS]   {};
-    Data<O*2> output      [N_THREADS]   {};
-    Data<O  > output_1    [N_THREADS]   {};
-    Data<O  > output_2    [N_THREADS]   {};
-    Data<O*2> output_grad [N_THREADS]   {};
-
-    DuplicateDenseLayer(Data<O,I> weights, Data<O> bias) {
-        this->weights = weights;
-        this->bias    = bias;
-    }
+    Data      weights                   {O,I};
+    Data      bias                      {O};
+    F         f                         {};
+    Data*     im1[N_THREADS]            {};
+    Data*     im2[N_THREADS]            {};
+    Data*     im1_g[N_THREADS]          {};
+    Data*     im2_g[N_THREADS]          {};
 
     DuplicateDenseLayer() {
         weights.randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
         bias   .randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
-        weights.assignID();
-        bias.assignID();
+        this->assignID();
     }
 
-    DataInterface *getBias() override {
+
+
+    void apply(Input    *in1,
+               Input    *in2,
+               ThreadData* td){
+        matmul(&weights, in1, im1[td->threadID]);
+        matmul(&weights, in2, im2[td->threadID]);
+        im1[td->threadID]->add(&bias);
+        im2[td->threadID]->add(&bias);
+        f.apply(im1[td->threadID], im1[td->threadID]);
+        f.apply(im2[td->threadID], im2[td->threadID]);
+    }
+
+    void backprop(
+            Input      *in1,
+            Input      *in2,
+            ThreadData *td){
+        f.backprop(im1[td->threadID], im1_g[td->threadID],im1_g[td->threadID]);
+        f.backprop(im2[td->threadID], im2_g[td->threadID],im2_g[td->threadID]);
+        td->bias_gradient[layerID] = im1_g[td->threadID];
+        td->bias_gradient[layerID]->add(im2_g[td->threadID]);
+
+        matmul_backprop(in1, td->weight_gradient[layerID], im1_g[td->threadID]);
+        matmul_backprop(in2, td->weight_gradient[layerID], im2_g[td->threadID]);
+
+    }
+
+
+    void assignThreadData(ThreadData** td){
+        for(int i = 0; i < N_THREADS; i++){
+            Data* out   = td[i]->output           [layerID];
+            Data* out_g = td[i]->output_gradient  [layerID];
+            im1  [i] = new Data(&(out  ->values[0]), O);
+            im2  [i] = new Data(&(out  ->values[O]), O);
+            im1_g[i] = new Data(&(out_g->values[0]), O);
+            im2_g[i] = new Data(&(out_g->values[O]), O);
+        }
+    }
+    int getOutputSize() override {
+        return O*2;
+    }
+    int getInputSize() override {
+        return I;
+    }
+    Data *newOutputInstance() override {
+        return new Data(O*2);
+    }
+    Data *newWeightInstance() override {
+        return new Data(O, I);
+    }
+    Data *newBiasInstance() override {
+        return new Data(O);
+    }
+
+    Data *getBias() override {
         return &bias;
     }
-
-    DataInterface *getWeights() override {
+    Data *getWeights() override {
         return &weights;
-    }
-
-    void apply(Data<I>  *in, int thread_id=0){
-        this->apply(in, &output[thread_id]);
-    }
-    void apply(Data<I>  *in, Data<O> *out){
-        matmul(&weights, in, out);
-        out->add(&bias);
-        f.apply(out, out);
-    }
-    void apply(Input    *in, int thread_id=0){
-        this->apply(in, &output[thread_id]);
-    }
-    void apply(Input    *in, Data<O> *out){
-        matmul(&weights, in, out);
-        out->add(&bias);
-        f.apply(out, out);
-    }
-
-    void backprop(
-            Data<I> *in,
-            Data<I> *in_grad,
-            int thread_id=0){
-        this->backprop(
-                in,
-                &output[thread_id],
-                in_grad,
-                &output_grad[thread_id],
-                &weights_grad[thread_id],
-                &bias_grad[thread_id]);
-    }
-    void backprop(
-            Data<I  > *in,
-            Data<O  > *output,
-            Data<I  > *in_grad,
-            Data<O  > *out_grad,
-            Data<O,I> *weights_grad,
-            Data<O  > *bias_grad){
-
-        f.backprop(output, out_grad,out_grad);
-        bias_grad->add(out_grad);
-        matmul_backprop(&weights, in, weights_grad, in_grad, out_grad);
-    }
-    void backprop(
-            Input *in,
-            int thread_id=0){
-        this->backprop(
-                in,
-                &output[thread_id],
-                &output_grad[thread_id],
-                &weights_grad[thread_id],
-                &bias_grad[thread_id]);
-    }
-    void backprop(
-            Input     *in,
-            Data<O  > *output,
-            Data<O  > *out_grad,
-            Data<O,I> *weights_grad,
-            Data<O  > *bias_grad){
-        f.backprop(output, out_grad,out_grad);
-        bias_grad->add(out_grad);
-        matmul_backprop(in, weights_grad, out_grad);
     }
 };
 
