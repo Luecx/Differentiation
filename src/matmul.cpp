@@ -205,3 +205,96 @@ void matmul_backprop(
     }
 
 }
+
+
+void matmul(
+        const Data *weights,
+        const Input *vector,
+        Data *target,
+        int inputOffset) {
+
+    target->clear();
+
+    assert(target->M == weights->M);
+    assert(weights->N % 8 == 0);
+
+
+    // extract the output values to which we write the transformation
+    // there is no input data object as the Sample contains all relevant information
+    // Note that the sample only contains indices for the places where there is a "1"
+    // -> there is only 0 or 1 as an input for a neuron
+    // The transformation is similar to the affine transformation which applies: o = A*x + b
+    // where A is the weights matrix, b is the bias and x is the input encoded in the sample.
+    float* outputValues = target ->values;
+    float* weightValues = weights->values;
+
+    for(uint16_t index:vector->indices){
+
+        if(index < inputOffset) continue;
+        if(index > weights->N - inputOffset) continue;
+        index -= inputOffset;
+
+        // we can only do the chunks of 8 with avx instructions
+        // the rest must be done manually
+        int size = PARALLEL_SIZE_32_BIT(weights->M);
+        // we assume that the output size of the very first layer is always a multiple of 8!
+        for(int n = 0; n < size; n+=8){
+            // get the gradients into the register aswell as the output which we want to write to
+            __m256 wvalues = _mm256_load_ps(&(weightValues[index * weights->M + n]));
+            __m256 ovalues = _mm256_load_ps(&(outputValues[                     n]));
+            // add the element-wise multiplication of the weights. For this, add the weights for the activated
+            // input neuron (output = 1) to the output
+            _mm256_store_ps(&outputValues[n],_mm256_add_ps(ovalues, wvalues));
+        }
+        for(int n = size; n < weights->M; n++){
+            outputValues[n] += weightValues[index * weights->M + n];
+        }
+    }
+
+}
+
+void matmul_backprop(
+        Input *vector,
+        Data *weights_grad,
+        Data *target_grad,
+        int inputOffset) {
+    assert(target_grad->M == weights_grad->M);
+    assert(weights_grad->N % 8 == 0);
+
+    // extract the weight gradient values which we want to compute.
+    // there is no input data object as the Sample contains all relevant information.
+    // Note that the sample only contains indices for the places where there is a "1"
+    // -> there is only 0 or 1 as an input for a neuron
+    // The transformation is similar to the backpropagation of the affine transformation
+    // which computes gradients for a weights connecting node i with node o by doing:
+    // grad(w_io) += output(i) * grad(o)
+    float* weightsGrad = weights_grad->values;
+    float* outputGrad  =  target_grad->values;
+
+    int size = PARALLEL_SIZE_32_BIT(weights_grad->M);
+    // going through each index, applying the rules described above
+    // Note that this assumes, as well as the forward step, that the output size is a multiple of 8
+    // Otherwise a SIGSEGV will occur as we try to load 256 bit into a register to which we dont have access.
+    for(uint16_t &index:vector->indices){
+
+        if(index < inputOffset) continue;
+        if(index > weights_grad->N - inputOffset) continue;
+        index -= inputOffset;
+
+        // we can only do the chunks of 8 with avx instructions
+        // the rest must be done manually
+        for(int n = 0; n < size; n+=8){
+            // get the weight gradient which we want to increment as well as the output gradient
+            __m256 wgrad = _mm256_load_ps(&(weightsGrad[index * weights_grad->M + n]));
+            __m256 ograd = _mm256_load_ps(&( outputGrad[                          n]));
+
+            _mm256_store_ps(&(weightsGrad[index * weights_grad->M + n]), _mm256_add_ps(wgrad, ograd));
+        }
+        for(int n = size; n < weights_grad->M; n++){
+            weightsGrad[index * weights_grad->M + n] += outputGrad[n];
+        }
+    }
+
+}
+
+

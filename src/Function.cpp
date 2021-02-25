@@ -49,6 +49,16 @@ void ReLU::backprop(Data *out, Data *in_grad, Data *out_grad) {
     }
 }
 
+void Linear::apply(Data *inp, Data *out) {
+    assert(out->M == out->M);
+    (*out) = (*inp);
+}
+
+void Linear::backprop(Data *out, Data *in_grad, Data *out_grad) {
+    assert(out->M == out->M);
+    (*in_grad) = (*out_grad);
+}
+
 float MSE::apply(Data *out, Data *target) {
     assert(out->M == out->M);
     float loss = 0;

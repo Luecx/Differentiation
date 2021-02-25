@@ -18,6 +18,11 @@ struct ReLU : Activation{
     void backprop   (Data *out       , Data *in_grad   , Data *out_grad);
 };
 
+struct Linear : Activation {
+    void apply      (Data *inp       , Data *out);
+    void backprop   (Data *out       , Data *in_grad   , Data *out_grad);
+};
+
 struct Loss{
     virtual float apply      (Data *out       , Data *target                       ) = 0;
     virtual float backprop   (Data *out       , Data *target       , Data *out_grad) = 0;

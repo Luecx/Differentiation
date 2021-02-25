@@ -12,4 +12,5 @@ struct Input{
 };
 
 
+
 #endif //DIFFERENTIATION_INPUT_H

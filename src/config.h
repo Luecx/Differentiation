@@ -1,0 +1,12 @@
+//
+// Created by Luecx on 24.02.2021.
+//
+
+#ifndef DIFFERENTIATION_CONFIG_H
+#define DIFFERENTIATION_CONFIG_H
+
+
+#define NN_THREADS 4
+#define UPDATE_THREADS 16
+
+#endif //DIFFERENTIATION_CONFIG_H
