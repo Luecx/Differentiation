@@ -7,6 +7,7 @@ Data::Data(float *values, const int m, const int n) : M(m), N(n) {
 
 Data::Data(const int m, const int n) : M(m), N(n) {
     this->values = (float*) _mm_malloc(M*N * sizeof(float), ALIGNMENT);
+    this->clear();
 //        this->values = new (std::align_val_t(ALIGNMENT)) float[M*N] {};
 }
 

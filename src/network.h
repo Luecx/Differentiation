@@ -30,7 +30,7 @@ public:
 
     virtual ~Network();
 
-    double batch(std::vector<Input> &inputs, std::vector<Data> &targets);
+    double batch(std::vector<Input> &inputs, std::vector<Data> &targets, int count = -1);
 
     void newEpoch();
 

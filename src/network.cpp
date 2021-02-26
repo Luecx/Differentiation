@@ -34,16 +34,20 @@ Network::~Network() {
     }
 }
 
-double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets) {
+double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, int count) {
     assert(inputs.size() == targets.size());
     assert(loss != nullptr);
     assert(optimiser != nullptr);
+
+    if(count < 0) count = inputs.size();
+    if(count > inputs.size()) count = inputs.size();
+
 
     // keeping track of the loss of this batch
     float batchLoss = 0;
     //making sure things run on multiple threads
 #pragma omp parallel for schedule(auto) num_threads(NN_THREADS) reduction(+: batchLoss)
-    for(int i = 0; i < inputs.size(); i++){
+    for(int i = 0; i < count; i++){
         // create a new vector for which we will request the input
 
         const int threadID = omp_get_thread_num();
@@ -58,6 +62,8 @@ double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets) 
         batchLoss += loss->backprop((threadData[threadID]->output         [layers.size() - 1]), &targets[i],
                                     (threadData[threadID]->output_gradient[layers.size() - 1]));
 
+
+
         // backward pass
         for(int l = layers.size()-1; l >= 1; l--){
             layers[l]->backprop(threadData[threadID]);
@@ -66,9 +72,9 @@ double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets) 
     }
 
     merge_gradients(threadData);
-    optimiser->apply(threadData[0], inputs.size());
+    optimiser->apply(threadData[0], count);
 
-    return batchLoss / inputs.size();
+    return batchLoss / count;
 }
 
 void Network::newEpoch() {

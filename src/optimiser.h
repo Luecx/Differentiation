@@ -27,7 +27,7 @@ private:
     std::vector<LayerInterface*> layers;
 
 public:
-    double alpha = 0.001;
+    double alpha = 0.0001;
     double beta1 = 0.9;
     double beta2 = 0.999;
     double eps   = 1e-8;

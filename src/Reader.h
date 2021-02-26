@@ -6,12 +6,26 @@
 #define DIFFERENTIATION_READER_H
 
 #include <bitset>
+#include <ostream>
+#include <iostream>
+#include <vector>
+#include <fstream>
 
 
 typedef int8_t Piece;
 typedef int8_t Square;
 typedef int8_t PieceType;
+typedef int8_t Rank;
+typedef int8_t File;
 typedef bool Color;
+
+#define mirror(s) squareIndex(7 - rankIndex(s), fileIndex(s))
+
+inline Rank rankIndex(Square square_index) { return square_index >> 3; }
+
+inline File fileIndex(Square square_index) { return square_index & 7; }
+
+inline Square squareIndex(Rank rank, File file) { return 8 * rank + file; }
 
 enum PieceTypes{
     PAWN,
@@ -42,20 +56,108 @@ enum Pieces{
     BLACK_KING
 };
 
+struct BitEntry{
+    int index;
+    bool occupied;
+    Color color;
+    Piece piece;
+    int bits = 1;
 
+    friend std::ostream &operator<<(std::ostream &os, const BitEntry &entry);
+};
+
+static BitEntry lookUpTable[64]{};
+
+static BitEntry lookUpTablePieces[12]{};
+
+
+inline void initLookUpTable(){
+
+    for(uint8_t i = 0; i < 64; i++){
+
+        lookUpTable[i].index = i;
+
+        // check if its occupied
+        if(i & (1 << 0)){
+            lookUpTable[i].occupied = true;
+        }else{
+            continue;
+        }
+
+        // check which color is on it
+        if(i & (1 << 1)){
+            lookUpTable[i].color = BLACK;
+        }else{
+            lookUpTable[i].color = WHITE;
+        }
+
+
+        // check if its a pawn
+        if(!(i & (1 << 2))) {
+            lookUpTable[i].piece = PAWN;
+            lookUpTable[i].bits = 3;
+            continue;
+        }
+        // check if its a knight, bishop or rook
+        switch((i >> 3) & 3){
+            case 0:{
+                lookUpTable[i].piece = KNIGHT;
+                lookUpTable[i].bits = 5;
+                continue;
+            }
+            case 1:{
+                lookUpTable[i].piece = BISHOP;
+                lookUpTable[i].bits = 5;
+                continue;
+            }
+            case 2:{
+                lookUpTable[i].piece = ROOK;
+                lookUpTable[i].bits = 5;
+                continue;
+            }
+        }
+
+        // has to be a king or queen
+        if ((i & (1 << 5))) {
+            lookUpTable[i].piece = KING;
+            lookUpTable[i].bits = 6;
+        }else{
+            lookUpTable[i].piece = QUEEN;
+            lookUpTable[i].bits = 6;
+        }
+
+
+
+    }
+
+    for(uint8_t i = 64; i >= 0; i--){
+        if(lookUpTable[i].occupied){
+            lookUpTablePieces[6 * lookUpTable[i].color + lookUpTable[i].piece] = lookUpTable[i];
+        }
+        if(i == 0){
+            break;
+        }
+    }
+
+
+}
 
 struct Position{
 
     std::bitset<8*24> bits{};
 
     void set(const std::string &fen) {
-        int index = 0;
+        // set the active player to white if it is not specified later on
+        Color activePlayer = WHITE;
+        // temporarely store the pieces in a table with 64 entries and initialise those pieces to -1 (no piece)
         Piece pieces[64]{};
         for(int i = 0; i < 64; i++) pieces[i] = -1;
+        // keep track of the row/col
         int row = 7;
         int col = 0;
         for(char c:fen){
 
+            // break if enough squares have been read
             if(row < 0) break;
             if(col >= 8) col = 0;
 
@@ -79,26 +181,49 @@ struct Position{
                     case 'Q': pieces[col + row * 8] = cl * 6 + QUEEN   ; break;
                     case 'K': pieces[col + row * 8] = cl * 6 + KING    ; break;
                 }
-//                std::cout << col + row * 8 << "  " << (int) pieces[col + row * 8] << std::endl;
-//                std::cout << col << "  v  " << row << std::endl;
                 col ++;
             }
         }
+        // parse the side to move
+        // find the first space. if there is one as well as a char after that, parse that char
+        if(fen.find(' ') < fen.length() - 1){
+            int pos = fen.find_first_of(' ');
+            char stm = fen[pos+1];
+            if(stm == 'w'){
+                activePlayer = WHITE;
+            }else{
+                activePlayer = BLACK;
+            }
+        }
 
-        int bitIndex = 0;
+        int16_t score = 0;
+        // parse a score if one has been specified.
+        // this is the case if a semicolon (;) has been found. the value after the semicolon (;) is considered to
+        // be the score. it will be stored in the last 16 bits
+        if(fen.find(';') < fen.length() - 1){
+            int pos = fen.find_first_of(';');
+            score = std::stoi(fen.substr(pos+1, fen.size()));
+        }
+
+        // set the active player bit in the bitset
+        bits.set(0,activePlayer);
+
+        // set the score bits in the bitset. Since we cannot store unsigned values, we need to add 1 << 16 first
+        bits |= (std::bitset<8*24>(score + (1 << 16)) << (22 * 8));
+
+        // set the remaining bits for the position
+        int bitIndex = 1;
         for(int r = 0; r < 8; r ++){
             for(int f = 0; f < 8; f++){
                 int id = r * 8 + f;
-                if(pieces[id] >= 0){
-                    bits.set(bitIndex);
-                    bits.set(bitIndex + 1, (pieces[id] / 8) % 2 == 1);
-                    bits.set(bitIndex + 2, (pieces[id] / 4) % 2 == 1);
-                    bits.set(bitIndex + 3, (pieces[id] / 2) % 2 == 1);
-                    bits.set(bitIndex + 4, (pieces[id] / 1) % 2 == 1);
-                    bitIndex += 5;
-                }else{
-                    bitIndex += 1;
+                if(pieces[id] < 0){
+                    bitIndex ++;
+                    continue;
                 }
+                BitEntry b = lookUpTablePieces[pieces[id]];
+                std::bitset<8*24> h(b.index);
+                bits |= (h << bitIndex);
+                bitIndex += b.bits;
             }
         }
     }
@@ -106,42 +231,101 @@ struct Position{
 
 struct PositionIterator{
 
-    Piece      piece;
-    Square     sq = -1;
-
-
-    int read_index = -1;
+private:
+    // the last index of the last entry we parsed
+    int read_index = 0;
+    // the position to parse from
     Position p;
+public:
+
+    // the active player for the position. does not change with "next()"
+    Color      activePlayer;
+    // the last piece which has been parsed
+    Piece      piece;
+    // the last square which has been parsed
+    Square     sq = -1;
+    // the last 16 bits are used for a score which might have been read from the fen
+    int16_t    score = 0;
+
 
     PositionIterator(Position& p){
+        // extract the active player which is stored in the very first bit
+        activePlayer = p.bits.test(0);
+        // when reading the score, we need to consider to move it from being unsigned to signed
+        score        = (p.bits >> (8*22)).to_ulong() - (1 << 16);
         this->p = p;
     };
 
     bool hasNext(){
-        return p.bits._Find_next(read_index) != p.bits.size();
+        // check if there is a 1 left in the bitset which would indicate a piece
+        return p.bits._Find_next(read_index) < 22 * 8;
     }
 
     void next(){
+        // get the next active bit index
         int n = p.bits._Find_next(read_index);
-//        std::cerr << read_index << "  " << n << std::endl;
+        // we compute the square this bit is on depending on how many bits we have skipped.
+        // since read_index points to the end of the previous section, n - read_index is 1 if no bits have been skipped
         sq += (n - read_index);
-
-        piece =
-              8 * p.bits.test(n + 1)
-            + 4 * p.bits.test(n + 2)
-            + 2 * p.bits.test(n + 3)
-            + 1 * p.bits.test(n + 4);
-
-
-        read_index = n + 4;
+        // figure out the BitEntry we are looking at by extracting the 6 relevant bits
+        BitEntry en = lookUpTable[((p.bits >> n) & std::bitset<192>{63}).to_ulong()];
+        // compute the piece
+        piece = en.piece + en.color * 6;
+        // compute the next index to read from
+        read_index = n + en.bits - 1;
     }
 
 
 
 };
 
-inline void read_positions(const std::string &file) {
+inline void read_positions_txt(const std::string &file, std::vector<Position> *positions, int max_lines=-1) {
+    std::ifstream infile(file);
+    std::string line;
+    int count = 0;
+    while (std::getline(infile, line)){
+        Position p{};
+        p.set(line);
+        if(positions->size() % 1000 == 0){
+            printf("\r[Loading positions] Current size=%d", positions->size());
+            fflush(stdout);
+        }
+        positions->push_back(p);
+        count ++;
+        if(count == max_lines){
+            break;
+        }
+    }
+    std::cout << std::endl;
+}
+inline void read_positions_bin(const std::string &file, std::vector<Position> *positions) {
+    std::ifstream fin(file, std::ios::in | std::ios::binary);
+    uint64_t num;
+    fin.read((char*)&num         , 64);
+    positions->resize(positions->size() + num);
+    fin.read((char*)&positions[positions->size()], positions->size()* sizeof(Position));
+    fin.close();
+}
+inline void write_positions_bin(const std::string &file, std::vector<Position> *positions){
 
+    uint64_t        num = positions->size();
+    FILE *f = fopen(file.c_str(), "wb");
+    fwrite(&num             , sizeof(uint64_t), 1  , f);
+    fwrite(&positions->at(0), sizeof(Position), num, f);
+    fclose(f);
+
+//    file = fopen("data.bin", "rb");
+//    fread(buff2, sizeof(*buff2), nx * ny, file );
+//    fclose(file);
+//
+//    std::ofstream fout(file, std::ios::out | std::ios::binary);
+//    uint64_t num = positions->size();
+//    fout.write((char*)&num         , 8);
+//    std::cout << positions->size()* sizeof(Position) << std::endl;
+//    std::cout << sizeof(Position) << std::endl;
+//    fwrite(data[i], sizeof(data[i][0]), ny, fout);
+//    fout.write((char*)&positions[0], positions->size()* sizeof(Position));
+//    fout.close();
 }
 
 
