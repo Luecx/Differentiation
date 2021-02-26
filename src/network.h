@@ -24,11 +24,11 @@ public:
 
     Network(const std::vector<LayerInterface *> &layers);
 
+    virtual ~Network();
+
     void setLoss(Loss* loss);
 
     void setOptimiser(Optimiser* optimiser);
-
-    virtual ~Network();
 
     double batch(std::vector<Input> &inputs, std::vector<Data> &targets, int count = -1);
 

@@ -61,44 +61,6 @@ public:
 
 };
 
-void matmul(
-        const Data* weights,
-        const Data* vector,
-        Data* target);
-
-void matmul_backprop(
-        const Data* weights,
-        const Data* vector,
-        Data* weights_grad,
-        Data* vector_grad,
-        const Data* target_grad);
-
-
-void matmul(
-        const Data*  weights,
-        const Input* vector,
-        Data*  target);
-
-
-void matmul_backprop(
-        Input    * vector,
-        Data     * weights_grad,
-        Data     * target_grad);
-
-
-
-void matmul(
-        const Data*  weights,
-        const Input* vector,
-        Data*  target,
-        int inputOffset);
-
-
-void matmul_backprop(
-        Input    * vector,
-        Data     * weights_grad,
-        Data     * target_grad,
-        int inputOffset);
 
 
 #endif //DIFFERENTIATION_DATA_H

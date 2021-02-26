@@ -36,12 +36,7 @@ public:
 };
 
 
-class
-
-
-
-
-ThreadData {
+class ThreadData {
 private:
 
 public:

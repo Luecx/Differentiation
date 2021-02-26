@@ -135,8 +135,6 @@ void matmul(
     target->clear();
 
     assert(target->M == weights->M);
-    assert(weights->N % 8 == 0);
-
 
     // extract the output values to which we write the transformation
     // there is no input data object as the Sample contains all relevant information
@@ -230,7 +228,7 @@ void matmul(
 
     for(uint16_t index:vector->indices){
 
-        if(index < inputOffset) continue;
+        if(index <= inputOffset) continue;
         if(index > weights->N - inputOffset) continue;
         index -= inputOffset;
 
@@ -277,7 +275,7 @@ void matmul_backprop(
     // Otherwise a SIGSEGV will occur as we try to load 256 bit into a register to which we dont have access.
     for(uint16_t &index:vector->indices){
 
-        if(index < inputOffset) continue;
+        if(index <= inputOffset) continue;
         if(index > weights_grad->N - inputOffset) continue;
         index -= inputOffset;
 

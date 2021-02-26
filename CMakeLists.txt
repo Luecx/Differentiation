@@ -15,7 +15,7 @@ add_executable(Differentiation
         src/Reader.cpp          src/Reader.h
         src/config.h
         src/network.cpp         src/network.h
-        src/Layer.cpp           src/Layer.h)
+        src/Layer.cpp           src/Layer.h src/matmul.h)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")

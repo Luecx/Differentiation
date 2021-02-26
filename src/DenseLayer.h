@@ -9,6 +9,7 @@
 #include "math.h"
 #include "Layer.h"
 #include "config.h"
+#include "matmul.h"
 
 
 template<int I, int O, typename F>
