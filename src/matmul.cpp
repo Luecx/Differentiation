@@ -145,7 +145,7 @@ void matmul(
     float* outputValues = target ->values;
     float* weightValues = weights->values;
 
-    for(uint16_t index:vector->indices){
+    for(uint32_t index:vector->indices){
 
         // we can only do the chunks of 8 with avx instructions
         // the rest must be done manually
@@ -187,7 +187,7 @@ void matmul_backprop(
     // going through each index, applying the rules described above
     // Note that this assumes, as well as the forward step, that the output size is a multiple of 8
     // Otherwise a SIGSEGV will occur as we try to load 256 bit into a register to which we dont have access.
-    for(uint16_t &index:vector->indices){
+    for(uint32_t &index:vector->indices){
         // we can only do the chunks of 8 with avx instructions
         // the rest must be done manually
         for(int n = 0; n < size; n+=8){
@@ -214,7 +214,7 @@ void matmul(
     target->clear();
 
     assert(target->M == weights->M);
-    assert(weights->N % 8 == 0);
+    assert(weights->M % 8 == 0);
 
 
     // extract the output values to which we write the transformation
@@ -226,9 +226,10 @@ void matmul(
     float* outputValues = target ->values;
     float* weightValues = weights->values;
 
-    for(uint16_t index:vector->indices){
+    for(uint32_t index:vector->indices){
 
-        if(index <= inputOffset) continue;
+
+        if(index < inputOffset) continue;
         if(index > weights->N - inputOffset) continue;
         index -= inputOffset;
 
@@ -244,9 +245,9 @@ void matmul(
             // input neuron (output = 1) to the output
             _mm256_store_ps(&outputValues[n],_mm256_add_ps(ovalues, wvalues));
         }
-        for(int n = size; n < weights->M; n++){
-            outputValues[n] += weightValues[index * weights->M + n];
-        }
+//        for(int n = size; n < weights->M; n++){
+//            outputValues[n] += weightValues[index * weights->M + n];
+//        }
     }
 
 }
@@ -273,9 +274,9 @@ void matmul_backprop(
     // going through each index, applying the rules described above
     // Note that this assumes, as well as the forward step, that the output size is a multiple of 8
     // Otherwise a SIGSEGV will occur as we try to load 256 bit into a register to which we dont have access.
-    for(uint16_t &index:vector->indices){
+    for(uint32_t &index:vector->indices){
 
-        if(index <= inputOffset) continue;
+        if(index < inputOffset) continue;
         if(index > weights_grad->N - inputOffset) continue;
         index -= inputOffset;
 

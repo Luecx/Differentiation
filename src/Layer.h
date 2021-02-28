@@ -7,7 +7,6 @@
 
 #include "Data.h"
 
-static int layer_id_counter;
 
 class ThreadData;
 
@@ -30,8 +29,8 @@ public:
     virtual void backprop(ThreadData* td) = 0;
     virtual void apply(Input *input, ThreadData* td) = 0;
     virtual void backprop(Input *input,ThreadData* td) = 0;
-    void assignID(){
-        layerID = layer_id_counter ++;
+    void assignID(int id){
+        layerID = id;
     }
 };
 

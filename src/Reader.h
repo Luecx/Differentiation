@@ -10,6 +10,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <cmath>
 
 
 typedef int8_t Piece;
@@ -200,7 +201,7 @@ struct Position{
         // parse a score if one has been specified.
         // this is the case if a semicolon (;) has been found. the value after the semicolon (;) is considered to
         // be the score. it will be stored in the last 16 bits
-        if(fen.find(';') < fen.length() - 1){
+        if(fen.find(';') < fen.length() - 1 && fen.find('#') >= fen.length()){
             int pos = fen.find_first_of(';');
             score = std::stoi(fen.substr(pos+1, fen.size()));
         }
@@ -299,33 +300,44 @@ inline void read_positions_txt(const std::string &file, std::vector<Position> *p
     std::cout << std::endl;
 }
 inline void read_positions_bin(const std::string &file, std::vector<Position> *positions) {
-    std::ifstream fin(file, std::ios::in | std::ios::binary);
-    uint64_t num;
-    fin.read((char*)&num         , 64);
+
+    uint64_t        num;
+    FILE *f = fopen(file.c_str(), "rb");
+    fread(&num             , sizeof(uint64_t), 1  , f);
     positions->resize(positions->size() + num);
-    fin.read((char*)&positions[positions->size()], positions->size()* sizeof(Position));
-    fin.close();
+
+    int chunks = std::ceil(num / 1e6);
+
+    for(int c = 0; c < chunks; c++){
+        int start = c * 1e6;
+        int end   = c * 1e6 + 1e6;
+        if(end > positions->size()) end = positions->size();
+        fread(&positions->at(start), sizeof(Position), end-start, f);
+        printf("\r[Reading positions] Current count=%d", end);
+    }
+    std::cout << std::endl;
+
+    fclose(f);
 }
 inline void write_positions_bin(const std::string &file, std::vector<Position> *positions){
 
     uint64_t        num = positions->size();
     FILE *f = fopen(file.c_str(), "wb");
     fwrite(&num             , sizeof(uint64_t), 1  , f);
-    fwrite(&positions->at(0), sizeof(Position), num, f);
+
+    int chunks = std::ceil(positions->size() / 1e6);
+
+    for(int c = 0; c < chunks; c++){
+        int start = c * 1e6;
+        int end   = c * 1e6 + 1e6;
+        if(end > positions->size()) end = positions->size();
+        fwrite(&positions->at(start), sizeof(Position), end-start, f);
+        printf("\r[Writing positions] Current count=%d", end);
+    }
+    std::cout << std::endl;
+
     fclose(f);
 
-//    file = fopen("data.bin", "rb");
-//    fread(buff2, sizeof(*buff2), nx * ny, file );
-//    fclose(file);
-//
-//    std::ofstream fout(file, std::ios::out | std::ios::binary);
-//    uint64_t num = positions->size();
-//    fout.write((char*)&num         , 8);
-//    std::cout << positions->size()* sizeof(Position) << std::endl;
-//    std::cout << sizeof(Position) << std::endl;
-//    fwrite(data[i], sizeof(data[i][0]), ny, fout);
-//    fout.write((char*)&positions[0], positions->size()* sizeof(Position));
-//    fout.close();
 }
 
 

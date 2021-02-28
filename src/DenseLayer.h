@@ -22,7 +22,6 @@ public:
     DenseLayer() {
         weights.randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
         bias   .randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
-        assignID();
     }
 
     void apply(ThreadData* td){

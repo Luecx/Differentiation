@@ -8,7 +8,7 @@
 #include <vector>
 
 struct Input{
-    std::vector<uint16_t> indices {};
+    std::vector<uint32_t> indices {};
 };
 
 

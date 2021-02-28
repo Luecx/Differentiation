@@ -20,7 +20,6 @@ public:
     DuplicateDenseLayer() {
         weights.randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
         bias   .randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
-        this->assignID();
     }
 
 

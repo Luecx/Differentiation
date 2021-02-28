@@ -10,11 +10,12 @@ Network::Network(const std::vector<LayerInterface *> &layers) : layers(layers) {
     for (int i = 0; i < NN_THREADS; i++) {
         threadData[i] = new ThreadData{i, layers};
     }
+    int index = 0;
     for (LayerInterface *l:layers) {
+        l->assignID(index);
         l->assignThreadData(threadData);
+        index ++;
     }
-    this->loss = loss;
-    this->optimiser = optimiser;
 }
 
 void Network::setLoss(Loss *loss) {
@@ -76,6 +77,16 @@ double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, 
 
     return batchLoss / count;
 }
+
+
+Data* Network::evaluate(Input &input) {
+    layers[0]->apply(&input, threadData[0]);
+    for(int l = 1; l < layers.size(); l++){
+        layers[l]->apply(threadData[0]);
+    }
+    return threadData[0]->output[layers.size()-1];
+}
+
 
 void Network::newEpoch() {
     if(optimiser != nullptr){

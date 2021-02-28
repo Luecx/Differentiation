@@ -11,7 +11,7 @@
 // change this to adjust the amount of threads the neural network will use
 #define NN_THREADS 4
 
-// change this to adjust the amount of thread will be used for merging gradients and adjusting weights.
+// change this to   ds adjust the amount of thread will be used for merging gradients and adjusting weights.
 #define UPDATE_THREADS 16
 
 // note that more NN_THREADS leads to a large overhead for merging gradients.

@@ -11,7 +11,6 @@
 #include "Function.h"
 #include "optimiser.h"
 
-//template<typename D, typename Generator>
 struct Network{
 
 private:
@@ -31,6 +30,47 @@ public:
     void setOptimiser(Optimiser* optimiser);
 
     double batch(std::vector<Input> &inputs, std::vector<Data> &targets, int count = -1);
+
+    Data* evaluate(Input& input);
+
+    void loadWeights(const std::string &file){
+        FILE *f = fopen(file.c_str(), "rb");
+
+        // figure out how many entries we will store
+        uint64_t count = 0;
+        for(LayerInterface* l:layers){
+            count += l->getWeights()->size();
+            count += l->getBias()->size();
+        }
+
+        uint64_t fileCount = 0;
+        fread(&fileCount, sizeof(uint64_t), 1, f);
+        assert(count == fileCount);
+
+        for(LayerInterface* l:layers){
+            fread(l->getWeights()->values, sizeof(float), l->getWeights()->size(), f);
+            fread(l->getBias   ()->values, sizeof(float), l->getBias   ()->size(), f);
+        }
+        fclose(f);
+    }
+
+    void saveWeights(const std::string &file){
+        FILE *f = fopen(file.c_str(), "wb");
+
+        // figure out how many entries we will store
+        uint64_t count = 0;
+        for(LayerInterface* l:layers){
+            count += l->getWeights()->size();
+            count += l->getBias()->size();
+        }
+
+        fwrite(&count, sizeof(uint64_t), 1, f);
+        for(LayerInterface* l:layers){
+            fwrite(l->getWeights()->values, sizeof(float), l->getWeights()->size(), f);
+            fwrite(l->getBias   ()->values, sizeof(float), l->getBias   ()->size(), f);
+        }
+        fclose(f);
+    }
 
     void newEpoch();
 
