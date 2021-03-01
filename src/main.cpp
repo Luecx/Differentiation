@@ -146,6 +146,7 @@ void nnue_reduce_matrix(Data& original, Data& reduced){
     }
 }
 
+
 int main() {
 
     int BATCH_SIZE = 8192;
@@ -195,7 +196,7 @@ int main() {
     Position    test_pos{};
     Input       test_pos_in{};
     Data        test_pos_tar{1};
-    test_pos.set("rnbqkb1r/pppppppp/8/3n4/8/4P3/PPPP1PPP/RNBQKBNR w KQq - 0 1");
+    test_pos.set("rnbqkbnr/pppp2pp/8/4pp2/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3");
     assign_input(test_pos, test_pos_in, test_pos_tar);
     std::cout << *network.evaluate(test_pos_in) << std::endl;
 
