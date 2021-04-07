@@ -35,7 +35,7 @@ Network::~Network() {
     }
 }
 
-double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, int count) {
+double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, int count, bool train) {
     assert(inputs.size() == targets.size());
     assert(loss != nullptr);
     assert(optimiser != nullptr);
@@ -64,16 +64,20 @@ double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, 
                                     (threadData[threadID]->output_gradient[layers.size() - 1]));
 
 
-
-        // backward pass
-        for(int l = layers.size()-1; l >= 1; l--){
-            layers[l]->backprop(threadData[threadID]);
+        if(train){
+            // backward pass
+            for(int l = layers.size()-1; l >= 1; l--){
+                layers[l]->backprop(threadData[threadID]);
+            }
+            layers[0]->backprop(&inputs[i], threadData[threadID]);
         }
-        layers[0]->backprop(&inputs[i], threadData[threadID]);
+
     }
 
-    merge_gradients(threadData);
-    optimiser->apply(threadData[0], count);
+    if(train) {
+        merge_gradients(threadData);
+        optimiser->apply(threadData[0], count);
+    }
 
     return batchLoss / count;
 }

@@ -62,14 +62,13 @@ struct BitEntry{
     bool occupied;
     Color color;
     Piece piece;
-    int bits = 1;
+    int bits;
 
     friend std::ostream &operator<<(std::ostream &os, const BitEntry &entry);
 };
 
-static BitEntry lookUpTable[64]{};
-
-static BitEntry lookUpTablePieces[12]{};
+extern BitEntry lookUpTable[64];
+extern BitEntry lookUpTablePieces[12];
 
 
 inline void initLookUpTable(){
@@ -77,6 +76,7 @@ inline void initLookUpTable(){
     for(uint8_t i = 0; i < 64; i++){
 
         lookUpTable[i].index = i;
+        lookUpTable[i].bits  = 1;
 
         // check if its occupied
         if(i & (1 << 0)){
@@ -275,8 +275,6 @@ public:
         // compute the next index to read from
         read_index = n + en.bits - 1;
     }
-
-
 
 };
 

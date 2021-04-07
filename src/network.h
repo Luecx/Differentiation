@@ -29,7 +29,7 @@ public:
 
     void setOptimiser(Optimiser* optimiser);
 
-    double batch(std::vector<Input> &inputs, std::vector<Data> &targets, int count = -1);
+    double batch(std::vector<Input> &inputs, std::vector<Data> &targets, int count = -1, bool train=true);
 
     Data* evaluate(Input& input);
 

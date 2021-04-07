@@ -1,6 +1,7 @@
 //
 // Created by Luecx on 21.02.2021.
 //
+#include <cmath>
 #include "Function.h"
 
 
@@ -57,6 +58,20 @@ void Linear::apply(Data *inp, Data *out) {
 void Linear::backprop(Data *out, Data *in_grad, Data *out_grad) {
     assert(out->M == out->M);
     (*in_grad) = (*out_grad);
+}
+
+void Sigmoid::apply(Data *inp, Data *out) {
+    assert(out->M == out->M);
+    for(int i = 0; i < out->M; i++){
+        (*out)(i) = 1.0 / (1 + exp(-(*inp)(i)));
+    }
+}
+
+void Sigmoid::backprop(Data *out, Data *in_grad, Data *out_grad) {
+    assert(out->M == out->M);
+    for(int i = 0; i < out->M; i++){
+        (*in_grad)(i) = (*out_grad)(i) * ((*out)(i) * (1-(*out)(i)));
+    }
 }
 
 float MSE::apply(Data *out, Data *target) {
