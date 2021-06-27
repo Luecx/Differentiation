@@ -42,6 +42,10 @@ public:
         out->add(&bias);
         f.apply(out, out);
     }
+    void apply(Data *input, ThreadData *td) override {
+        this->apply(input, td->output[layerID]);
+    }
+
 
     void backprop(
             ThreadData* td){
@@ -87,6 +91,26 @@ public:
         f.backprop(output, out_grad,out_grad);
         bias_grad->add(out_grad);
         matmul_backprop(in, weights_grad, out_grad);
+    }
+
+    void backprop(
+        Data   *in,
+        Data   *output,
+        Data   *out_grad,
+        Data   *weights_grad,
+        Data   *bias_grad){
+        f.backprop(output, out_grad,out_grad);
+        bias_grad->add(out_grad);
+        matmul_backprop(&weights, in, weights_grad, out_grad);
+    }
+
+    void backprop(Data *input, ThreadData *td) override {
+        this->backprop(
+            input,
+            td->output[layerID],
+            td->output_gradient[layerID],
+            td->weight_gradient[layerID],
+            td->bias_gradient[layerID]);
     }
 
     void assignThreadData(ThreadData **td) override {

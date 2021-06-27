@@ -23,6 +23,14 @@ public:
 
     Network(const std::vector<LayerInterface *> &layers);
 
+//    Network(Network &&other);
+//
+//    Network(const Network &other) = delete;
+//
+//    Network& operator=(Network &&other);
+//
+//    Network& operator=(const Network &other) = delete;
+
     virtual ~Network();
 
     void setLoss(Loss* loss);
@@ -31,7 +39,15 @@ public:
 
     double batch(std::vector<Input> &inputs, std::vector<Data> &targets, int count = -1, bool train=true);
 
+    double train(Input& input, Data& target);
+
     Data* evaluate(Input& input);
+
+    Data* evaluate(Data* input);
+
+    ThreadData* getThreadData(int thread);
+
+    LayerInterface* getLayer(int layer);
 
     void loadWeights(const std::string &file){
         FILE *f = fopen(file.c_str(), "rb");

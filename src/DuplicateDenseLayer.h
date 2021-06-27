@@ -30,6 +30,13 @@ public:
 
     }
 
+    void apply(Data *input, ThreadData *td) override {
+
+    }
+    void backprop(Data *input, ThreadData *td) override {
+
+    }
+
     void apply(Input    *in1,
                ThreadData* td){
         matmul(&weights, in1, im1[td->threadID], 0);

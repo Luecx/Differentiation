@@ -57,6 +57,31 @@ void matmul_backprop(
 
 /**
  * backprop for the standard multiplication of a matrix with a vector.
+ * It will compute the gradients for the weights which will be stored in weights_grad
+ * as well as the gradients for the input vector which will be stored within vector_grad.
+ * The gradient of the output must be given which will be used to compute
+ * the gradients of the weights.
+ * Note that the gradients inside weights_grad will be incremented and not overwritten.
+ *
+ * Conditions:
+ * 1) This will only work if the input vector is a multiple of 8
+ * 2) The height of the matrix must equal the height of the target
+ * 3) The width of the matrix must equal the height of the vector
+ * 4) The gradients for the weights and vector must have the same size as the corresponding values.
+ *
+ * @param weights           the weight-matrix
+ * @param vector            the vector which will be transformed using the weight-matrix
+ * @param weights_grad      the gradient for the weight-matrix
+ * @param target_grad       the gradient of the output of the matrix-multiplication
+ */
+void matmul_backprop(
+    const Data *weights,
+    const Data *vector,
+    Data *weights_grad,
+    const Data *target_grad);
+
+/**
+ * backprop for the standard multiplication of a matrix with a vector.
  * The input to vector is given in a sparse format where only the indices of the activated inputs are given.
  * All activated inputs are considered to output "1".
  * The target vector will contain the result.

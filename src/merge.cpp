@@ -14,6 +14,15 @@ void merge_gradients(ThreadData **td) {
                 td[t]->weight_gradient[l]->values[s] = 0;
             }
         }
+
+
+        for (int s = 0; s < td[0]->bias_gradient[l]->size(); s++) {
+            for (int t = 1; t < NN_THREADS; t++) {
+                td[0]->bias_gradient[l]->values[s] += td[t]->bias_gradient[l]->values[s];
+                td[t]->bias_gradient[l]->values[s] = 0;
+            }
+        }
+
     }
 //#pragma omp parallel for schedule(static, td[0]->weight_gradient[l]->size()/UPDATE_THREADS) num_threads(UPDATE_THREADS)
 //        for (int t = 1; t < NN_THREADS; t++) {

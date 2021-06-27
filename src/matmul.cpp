@@ -127,6 +127,36 @@ void matmul_backprop(
     }
 }
 
+void matmul_backprop(
+    const Data *weights,
+    const Data *vector,
+    Data *weights_grad,
+    const Data *target_grad) {
+
+    assert(weights_grad->M == weights->M);
+    assert(weights_grad->N == weights->N);
+    assert(vector->M == weights->N);
+    assert(target_grad->M == weights->M);
+    assert(weights->N % 8 == 0);
+
+
+    __m256* wgt             = (__m256*)(weights           ->values);
+    __m256* wgt_grd         = (__m256*)(weights_grad      ->values);
+    __m256* inp             = (__m256*)(vector            ->values);
+
+    const int    row_chunks = weights->M;
+    const int column_chunks = weights->N / 8;
+
+    for(int row_chunk = 0; row_chunk < row_chunks; row_chunk ++){
+        __m256 k1   = _mm256_set1_ps(target_grad->get(row_chunk));
+        for(int col_chunk = 0; col_chunk < column_chunks; col_chunk ++){
+
+            int weight_index = row_chunk * column_chunks + col_chunk;
+            wgt_grd[weight_index] = _mm256_add_ps(wgt_grd [weight_index], _mm256_mul_ps(inp [col_chunk   ], k1));
+        }
+    }
+}
+
 void matmul(
         const Data *weights,
         const Input *vector,

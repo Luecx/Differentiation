@@ -27,6 +27,8 @@ public:
     virtual void assignThreadData(ThreadData** td) = 0;
     virtual void apply(ThreadData* td) = 0;
     virtual void backprop(ThreadData* td) = 0;
+    virtual void apply(Data *input, ThreadData* td) = 0;
+    virtual void backprop(Data *input,ThreadData* td) = 0;
     virtual void apply(Input *input, ThreadData* td) = 0;
     virtual void backprop(Input *input,ThreadData* td) = 0;
     void assignID(int id){

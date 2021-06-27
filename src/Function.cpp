@@ -86,6 +86,7 @@ float MSE::apply(Data *out, Data *target) {
 float MSE::backprop(Data *out, Data *target, Data *out_grad) {
     assert(out->M == out->M);
     float loss = 0;
+
     for(int i = 0; i < out->M; i++){
         float diff = ((*out)(i) - (*target)(i));
         (*out_grad)(i) = 2 * diff;

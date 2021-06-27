@@ -203,8 +203,24 @@ struct Position{
         // be the score. it will be stored in the last 16 bits
         if(fen.find(';') < fen.length() - 1 && fen.find('#') >= fen.length()){
             int pos = fen.find_first_of(';');
-            score = std::stoi(fen.substr(pos+1, fen.size()));
+            double parsedResult = std::stod(fen.substr(pos+1, fen.size()));
+            score = round(parsedResult * 2000 - 1000);
         }
+//        if(fen.find(';') < fen.length() - 1){
+//            int pos = fen.find_first_of(';');
+//            File f1 = fen.at(pos+1) - 'a';
+//            File f2 = fen.at(pos+3) - 'a';
+//            Rank r1 = fen.at(pos+2) - '1';
+//            Rank r2 = fen.at(pos+4) - '1';
+//            Square s1 = f1 + r1 * 8;
+//            Square s2 = f2 + r2 * 8;
+//            score = s1 * 64 + s2;
+//            if (score >= 64 * 64){
+//                std::cout << fen << std::endl;
+//                exit(-1);
+//            }
+//        }
+
 
         // set the active player bit in the bitset
         bits.set(0,activePlayer);
@@ -281,6 +297,11 @@ public:
 inline void read_positions_txt(const std::string &file, std::vector<Position> *positions, int max_lines=-1) {
     std::ifstream infile(file);
     std::string line;
+
+    if(!infile.is_open()){
+        std::cout << "could not open: " << file << std::endl;
+    }
+
     int count = 0;
     while (std::getline(infile, line)){
         Position p{};

@@ -18,6 +18,35 @@ Network::Network(const std::vector<LayerInterface *> &layers) : layers(layers) {
     }
 }
 
+//Network::Network(Network &&other){
+//    this->loss = other.loss;
+//    other.loss = nullptr;
+////    this->threadData = other.threadData;
+////    other.threadData = nullptr;
+//    this->layers = other.layers;
+//    this->optimiser = other.optimiser;
+//    other.optimiser = nullptr;
+//}
+
+//Network::Network(const Network &other){
+//    this->loss
+//}
+
+//Network& Network::operator=(Network &&other){
+//    this->loss = other.loss;
+//    other.loss = nullptr;
+////    this->threadData = other.threadData;
+////    other.threadData = nullptr;
+//    this->layers = other.layers;
+//    this->optimiser = other.optimiser;
+//    other.optimiser = nullptr;
+//    return *this;
+//}
+
+//Network& Network::operator=(const Network &other){
+//
+//}
+
 void Network::setLoss(Loss *loss) {
     this->loss = loss;
 }
@@ -28,11 +57,14 @@ void Network::setOptimiser(Optimiser *optimiser) {
 }
 
 Network::~Network() {
-    delete this->loss;
-    delete this->optimiser;
-    for (int i = 0; i < NN_THREADS; i++) {
-        delete threadData[i];
-    }
+//    delete this->loss;
+//    delete this->optimiser;
+//    for (int i = 0; i < NN_THREADS; i++) {
+//        delete threadData[i];
+//        threadData[i] = nullptr;
+//    }
+//    this->loss = nullptr;
+//    this->optimiser = nullptr;
 }
 
 double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, int count, bool train) {
@@ -49,8 +81,8 @@ double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, 
     //making sure things run on multiple threads
 #pragma omp parallel for schedule(auto) num_threads(NN_THREADS) reduction(+: batchLoss)
     for(int i = 0; i < count; i++){
-        // create a new vector for which we will request the input
 
+        // create a new vector for which we will request the input
         const int threadID = omp_get_thread_num();
 
         // forward pass
@@ -74,12 +106,34 @@ double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, 
 
     }
 
+
     if(train) {
         merge_gradients(threadData);
         optimiser->apply(threadData[0], count);
     }
 
     return batchLoss / count;
+}
+
+
+double Network::train(Input& input, Data& target){
+
+    layers[0]->apply(&input, threadData[0]);
+    for (int l = 1; l < layers.size(); l++) {
+        layers[l]->apply(threadData[0]);
+    }
+
+    // computing the loss
+    double error = loss->backprop((threadData[0]->output[layers.size() - 1]), &target, (threadData[0]->output_gradient[layers.size() - 1]));
+
+    // backward pass
+    for (int l = layers.size() - 1; l >= 1; l--) {
+        layers[l]->backprop(threadData[0]);
+    }
+    layers[0]->backprop(&input, threadData[0]);
+
+    optimiser->apply(threadData[0], 1);
+    return error;
 }
 
 
@@ -91,6 +145,21 @@ Data* Network::evaluate(Input &input) {
     return threadData[0]->output[layers.size()-1];
 }
 
+Data* Network::evaluate(Data *input) {
+    layers[0]->apply(input, threadData[0]);
+    for(int l = 1; l < layers.size(); l++){
+        layers[l]->apply(threadData[0]);
+    }
+    return threadData[0]->output[layers.size()-1];
+}
+
+ThreadData *Network::getThreadData(int thread) {
+    return threadData[thread];
+}
+
+LayerInterface* Network::getLayer(int layer){
+    return layers[layer];
+}
 
 void Network::newEpoch() {
     if(optimiser != nullptr){
