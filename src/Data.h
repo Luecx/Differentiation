@@ -46,6 +46,10 @@ public:
     float  operator()(int height, int width) const;
     float& operator()(int height, int width);
 
+    float  min() const;
+    float  max() const;
+    void   sort();
+
     [[nodiscard]] int getM() const;
     [[nodiscard]] int getN() const;
     [[nodiscard]] int size() const;

@@ -107,7 +107,7 @@ int  assign_inputs_batch(std::vector<Sample>& positions, int offset, std::vector
 }    // namespace ataxx
 
 namespace dense {
-int  index(Square psq, Piece p);
+int  index(Square psq, Piece p, Color activePlayer);
 
 //    int index_factor_1(Color active, Color kingColor, Color pieceColor, Square ksq, Square psq, PieceType p);
 

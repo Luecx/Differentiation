@@ -70,6 +70,12 @@ struct BitEntry{
 extern BitEntry lookUpTable[64];
 extern BitEntry lookUpTablePieces[12];
 
+enum ScoreFormat{
+    CP,
+    P,
+    WDL,
+    UCI_MOVE
+};
 
 inline void initLookUpTable(){
 
@@ -147,7 +153,7 @@ struct Position{
 
     std::bitset<8*24> bits{};
 
-    void set(const std::string &fen) {
+    bool set(const std::string &fen, ScoreFormat scoreFormat = CP) {
         // set the active player to white if it is not specified later on
         Color activePlayer = WHITE;
         // temporarely store the pieces in a table with 64 entries and initialise those pieces to -1 (no piece)
@@ -197,36 +203,8 @@ struct Position{
             }
         }
 
-        int16_t score = 0;
-        // parse a score if one has been specified.
-        // this is the case if a semicolon (;) has been found. the value after the semicolon (;) is considered to
-        // be the score. it will be stored in the last 16 bits
-        if(fen.find(';') < fen.length() - 1 && fen.find('#') >= fen.length()){
-            int pos = fen.find_first_of(';');
-            double parsedResult = std::stod(fen.substr(pos+1, fen.size()));
-            score = round(parsedResult * 2000 - 1000);
-        }
-//        if(fen.find(';') < fen.length() - 1){
-//            int pos = fen.find_first_of(';');
-//            File f1 = fen.at(pos+1) - 'a';
-//            File f2 = fen.at(pos+3) - 'a';
-//            Rank r1 = fen.at(pos+2) - '1';
-//            Rank r2 = fen.at(pos+4) - '1';
-//            Square s1 = f1 + r1 * 8;
-//            Square s2 = f2 + r2 * 8;
-//            score = s1 * 64 + s2;
-//            if (score >= 64 * 64){
-//                std::cout << fen << std::endl;
-//                exit(-1);
-//            }
-//        }
-
-
         // set the active player bit in the bitset
         bits.set(0,activePlayer);
-
-        // set the score bits in the bitset. Since we cannot store unsigned values, we need to add 1 << 16 first
-        bits |= (std::bitset<8*24>(score + (1 << 16)) << (22 * 8));
 
         // set the remaining bits for the position
         int bitIndex = 1;
@@ -243,6 +221,54 @@ struct Position{
                 bitIndex += b.bits;
             }
         }
+
+
+        int16_t score = 0;
+        // parse a score if one has been specified.
+        // this is the case if a semicolon (;) has been found. the value after the semicolon (;) is considered to
+        // be the score. it will be stored in the last 16 bits
+        if(fen.find(';') < fen.length() - 1 && fen.find('#') >= fen.length()){
+
+            auto pos = fen.find_first_of(';');
+            std::string relevant = fen.substr(pos+1, fen.size());
+
+            if(scoreFormat == CP){
+                score = stoi(relevant);
+                if(abs(score) > 500)
+                    return false;
+            }
+
+            if(scoreFormat == P){
+                score = round(stod(relevant) * 100);
+                if(abs(score) > 500)
+                    return false;
+            }
+
+            if(scoreFormat == WDL){
+                score = round(stod(relevant) * 2000 - 1000);
+            }
+
+            if(scoreFormat == UCI_MOVE){
+                File f1 = fen.at(pos+1) - 'a';
+                File f2 = fen.at(pos+3) - 'a';
+                Rank r1 = fen.at(pos+2) - '1';
+                Rank r2 = fen.at(pos+4) - '1';
+                Square s1 = f1 + r1 * 8;
+                Square s2 = f2 + r2 * 8;
+                score = s1 * 64 + s2;
+                if (score >= 64 * 64){
+                    std::cout << fen << std::endl;
+                    exit(-1);
+                }
+            }
+        }else{
+            return false;
+        }
+
+        // set the score bits in the bitset. Since we cannot store unsigned values, we need to add 1 << 16 first
+        bits |= (std::bitset<8*24>(score + (1 << 16)) << (22 * 8));
+
+        return true;
     }
 };
 
@@ -294,7 +320,7 @@ public:
 
 };
 
-inline void read_positions_txt(const std::string &file, std::vector<Position> *positions, int max_lines=-1) {
+inline void read_positions_txt(const std::string &file, std::vector<Position> *positions, ScoreFormat scoreFormat = CP, int max_lines=-1) {
     std::ifstream infile(file);
     std::string line;
 
@@ -305,16 +331,19 @@ inline void read_positions_txt(const std::string &file, std::vector<Position> *p
     int count = 0;
     while (std::getline(infile, line)){
         Position p{};
-        p.set(line);
-        if(positions->size() % 1000 == 0){
-            printf("\r[Loading positions] Current size=%d", positions->size());
-            fflush(stdout);
+        if(p.set(line, scoreFormat)){
+            if(positions->size() % 1000 == 0){
+                printf("\r[Loading positions] Current size=%d", positions->size());
+                fflush(stdout);
+            }
+            positions->push_back(p);
+            count ++;
+            if(count == max_lines){
+                break;
+            }
         }
-        positions->push_back(p);
-        count ++;
-        if(count == max_lines){
-            break;
-        }
+
+
     }
     std::cout << std::endl;
 }

@@ -1,5 +1,7 @@
 #include "Data.h"
 
+#include <algorithm>
+
 Data::Data(float *values, const int m, const int n) : M(m), N(n) {
     cleanUp = false;
     this->values = values;
@@ -57,6 +59,27 @@ float &Data::operator()(int height) { return get(height); }
 float Data::operator()(int height, int width) const { return get(height, width); }
 
 float &Data::operator()(int height, int width) { return get(height, width); }
+
+
+float  Data::min() const{
+    float m = values[0];
+    for(int i = 0; i < size(); i++){
+        m = std::min(m, values[i]);
+    }
+    return m;
+}
+float  Data::max() const{
+
+    float m = values[0];
+    for(int i = 0; i < size(); i++){
+        m = std::max(m, values[i]);
+    }
+    return m;
+}
+
+void Data::sort(){
+    std::sort(values, values + size(), std::greater<float>());
+}
 
 int Data::getM() const {
     return M;

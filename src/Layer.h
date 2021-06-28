@@ -20,6 +20,7 @@ public:
     virtual int getOutputSize() = 0;
     virtual int getInputSize()  = 0;
 
+
     virtual Data* newOutputInstance() = 0;
     virtual Data* newWeightInstance() = 0;
     virtual Data* newBiasInstance() = 0;
