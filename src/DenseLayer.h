@@ -20,8 +20,18 @@ public:
     F    f                         {};
 
     DenseLayer() {
-        weights.randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
-        bias   .randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
+//        weights.randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
+//        bias   .randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
+
+//
+
+        weights.randomiseGaussian(0, sqrt(2.0 / I));
+//        bias   .randomiseGaussian(0, 0);
+//        weights.randomiseKieren();
+        bias.randomiseGaussian(0,0);
+
+//        weights.randomise(0, 1.0 / sqrt(I));
+//        bias   .randomise(0, 1.0 / sqrt(I));
     }
 
     void apply(ThreadData* td){

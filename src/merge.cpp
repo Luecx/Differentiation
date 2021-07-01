@@ -15,7 +15,6 @@ void merge_gradients(ThreadData **td) {
             }
         }
 
-
         for (int s = 0; s < td[0]->bias_gradient[l]->size(); s++) {
             for (int t = 1; t < NN_THREADS; t++) {
                 td[0]->bias_gradient[l]->values[s] += td[t]->bias_gradient[l]->values[s];

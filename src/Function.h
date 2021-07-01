@@ -7,6 +7,7 @@
 #include "Data.h"
 #include "util.h"
 
+#include <cmath>
 
 struct Activation{
     virtual void apply      (Data *in        , Data *out                       ) = 0;
@@ -24,8 +25,18 @@ struct Linear : Activation {
 };
 
 struct Sigmoid : Activation{
-    void apply      (Data *inp       , Data *out);
-    void backprop   (Data *out       , Data *in_grad   , Data *out_grad);
+    void apply      (Data *inp       , Data *out) {
+        assert(out->M == out->M);
+        for(int i = 0; i < out->M; i++){
+            (*out)(i) = 1.0 / (1 + expf(-(*inp)(i) * SIGMOID_SCALE));
+        }
+    }
+    void backprop   (Data *out       , Data *in_grad   , Data *out_grad){
+        assert(out->M == out->M);
+        for(int i = 0; i < out->M; i++){
+            (*in_grad)(i) = (*out_grad)(i) * ((*out)(i) * (1-(*out)(i))) * SIGMOID_SCALE;
+        }
+    }
 };
 
 struct Loss{
@@ -38,5 +49,12 @@ struct MSE : Loss{
     float backprop  (Data *out, Data *target, Data *out_grad) override;
 };
 
+struct MSEmix : Loss{
+
+    float wdlWeight = 0.5;
+
+    float apply     (Data* out, Data *target) override;
+    float backprop  (Data *out, Data *target, Data *out_grad) override;
+};
 
 #endif //DIFFERENTIATION_FUNCTION_H

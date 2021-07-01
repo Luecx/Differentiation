@@ -10,28 +10,25 @@
 
 #include <chrono>
 
+constexpr int BATCH_SIZE  = 1024 * 16;
 
-constexpr int BATCH_SIZE  = 1024;
-
-constexpr int IN_SIZE     = 12*64;
+constexpr int IN_SIZE     = 12 * 64;
 constexpr int HIDDEN_SIZE = 512;
 constexpr int OUTPUT_SIZE = 1;
 
-int main() {
-
+int           main() {
 
     initLookUpTable();
 
     std::vector<Position> positions {};
-    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\make_fens_from_lichess_pgn\output\0.txt)", &positions, P, 1);
-//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\make_fens_from_lichess_pgn\output\1.txt)", &positions, P, 30000000);
-//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\make_fens_from_lichess_pgn\output\2.txt)", &positions, P, 30000000);
-//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\make_fens_from_lichess_pgn\output\3.txt)", &positions, P, 30000000);
-//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\make_fens_from_lichess_pgn\output\4.txt)", &positions, P, 30000000);
-//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\make_fens_from_lichess_pgn\output\5.txt)", &positions, P, 30000000);
-//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\make_fens_from_lichess_pgn\output\6.txt)", &positions, P, 30000000);
-//    write_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\eth\sfDump.bin)", &positions);
-//    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\eth\sfDump.bin)", &positions);
+
+    //    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\eth\stage9.training.fens.100M)", &positions, AGE, 100*1000*1000);
+    //    write_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\eth\stage9.training.fens.100M.bin)", &positions);
+    //    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\fens_new_mixed.epd)", &positions, AGE);
+
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi_4.79-filtered-mix.epd)", &positions, AGE);
+    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi_4.79-filtered-mix.bin)", &positions);
+
     // creating buffers where inputs and targets will be stored for a batch
     std::vector<Input> inputs {};
     inputs.resize(BATCH_SIZE);
@@ -41,32 +38,31 @@ int main() {
         targets.emplace_back(Data {OUTPUT_SIZE});
     }
 
-    auto                         l1 = new DenseLayer<IN_SIZE    , HIDDEN_SIZE, ReLU> {};
-    auto                         l2 = new DenseLayer<HIDDEN_SIZE, OUTPUT_SIZE, Linear> {};
+    auto                         l1 = new DenseLayer<IN_SIZE, HIDDEN_SIZE, ReLU> {};
+    auto                         l2 = new DenseLayer<HIDDEN_SIZE, OUTPUT_SIZE, Sigmoid> {};
     std::vector<LayerInterface*> layers {};
     layers.push_back(l1);
     layers.push_back(l2);
 
     Network network {layers};
-    network.setLoss(new MSE());
+    MSEmix  lossFunction {};
+    lossFunction.wdlWeight = 0.5;
+    network.setLoss(&lossFunction);
     network.setOptimiser(new Adam());
-//    network.loadWeights("fcSf.net");
+//    network.loadWeights("koiNN1.net");
 
-//    Position p{};
-//    p.set("r1bqk2r/ppppbppp/2n2n2/4p3/3PP3/2N2N2/PPP2PPP/R1BQKB1R w KQkq - 0 1;0.1");
-//    PositionIterator it{p};
-//    Input inp{};
-//    Data output{1};
+//    Position p {};
+//    p.set("8/5k2/8/8/3Q4/8/4K3/8 w - - 0 1;0.1");
+//    Input            inp {};
+//    Data             output {1};
 //    dense::assign_input(p, inp, output);
 //
 //    Data* h = network.evaluate(inp);
-//    std::cout << *network.getLayer(1)->getWeights() << std::endl;
-//    std::cout << *network.getThreadData(0)->output[0] << std::endl;
-//    std::cout << *network.getThreadData(0)->output[1] << std::endl;
-//    std::cout << *network.getLayer(1)->getBias() << std::endl;
-//
+//    std::cout << network.getThreadData(0)->output[0][0] << std::endl;
+//    std::cout << *network.getLayer(0)->getBias() << std::endl;
+//    std::cout << network.getLayer(0)->getWeights()->max() << std::endl;
+//    std::cout << network.getLayer(0)->getWeights()->min() << std::endl;
 //    std::cout << *h << std::endl;
-
 
     for (int i = 0; i < 100; i++) {
 
@@ -85,14 +81,13 @@ int main() {
             auto                          end  = std::chrono::system_clock::now();
             std::chrono::duration<double> diff = end - start;
 
-
             printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f speed=%-7d eps", i, batch, batch_count, loss, (int) ((batch * BATCH_SIZE + batchsize) / diff.count()));
             std::cout << std::flush;
         }
         std::cout << std::endl;
-//        std::cout << "train loss=" << lossSum / positions.size() << std::endl;
+        std::cout << "train loss=" << lossSum / positions.size() << std::endl;
 
-//        network.saveWeights("fcSf.net");
+        network.saveWeights("koiNN1.net");
         network.newEpoch();
     }
 

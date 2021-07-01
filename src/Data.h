@@ -56,10 +56,13 @@ public:
 
     void   clear() const;
     void   randomise(float lower=0, float upper=1) const;
+    void   randomiseGaussian(float mean, float deviation);
+    void   randomiseKieren();
+
     void   add(Data *other);
     void   add(Data *other, float scalar);
     void   sub(Data *other);
-    Data  *newInstance() const;
+    Data   newInstance() const;
 
     friend std::ostream& operator<<(std::ostream& os, const Data& data);
 

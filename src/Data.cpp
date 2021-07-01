@@ -1,6 +1,7 @@
 #include "Data.h"
 
 #include <algorithm>
+#include <random>
 
 Data::Data(float *values, const int m, const int n) : M(m), N(n) {
     cleanUp = false;
@@ -102,6 +103,25 @@ void Data::randomise(float lower, float upper) const {
     }
 }
 
+void   Data::randomiseGaussian(float mean, float deviation){
+    std::default_random_engine generator;
+    std::normal_distribution<float> distribution(0,deviation);
+    for (int i = 0; i < M*N; i++) {
+        this->values[i] = distribution(generator);
+    }
+}
+
+void Data::randomiseKieren(){
+#define uniform() ((float) (rand() + 1) / ((float) RAND_MAX + 2))
+#define random()  (sqrtf(-2.0 * log(uniform())) * cos(2 * M_PI * uniform()))
+
+    for (int j = 0; j < M*N; j++)
+       values[j] = random() / 4.0;
+
+#undef uniform
+#undef random
+}
+
 void Data::add(Data *other) {
     assert(other->M == M && other->N == N);
     const int size = PARALLEL_SIZE_32_BIT(M*N);
@@ -148,14 +168,10 @@ void Data::sub(Data *other) {
     }
 }
 
-Data *Data::newInstance() const {
-    return new Data{M,N};
-}
-
 std::ostream &operator<<(std::ostream &os, const Data &data) {
 
     if(data.N != 1){
-        os << std::fixed << std::setprecision(3);
+        os << std::fixed << std::setprecision(5);
         for (int i = 0; i < data.M; i++) {
             for (int n = 0; n < data.N; n++) {
                 os << std::setw(11) << (double)data(i,n);

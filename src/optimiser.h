@@ -53,8 +53,8 @@ private:
     std::vector<LayerInterface*> layers;
 
 public:
-    double alpha = 0.001;
-    double beta1 = 0.9;
+    double alpha = 0.0001;
+    double beta1 = 0.95;
     double beta2 = 0.999;
     double eps   = 1e-8;
 
@@ -92,6 +92,56 @@ public:
      * Destructor to deallocate the moment estimates.
      */
     virtual ~Adam();
+
+};
+
+/**
+ * Gradient descent is an optimiser which can be used for stochastic training.
+ */
+struct Gd : Optimiser{
+
+    private:
+
+    int count = 0;
+
+    std::vector<LayerInterface*> layers;
+
+    public:
+    double alpha = 0.0000005;
+
+    /**
+     * Function to init the first moment and second moment vectors
+     * @param layers        the layers which the network consists of
+     */
+    void init(std::vector<LayerInterface*> layers);
+
+    /**
+     * applies adam to the values based on the gradients for the values.
+     *
+     * @param values            values to be adjusted
+     * @param gradient          gradients for the values
+     * @param first_moment      first moment estimates of the gradients
+     * @param second_moment     second moment estimates of the gradients
+     */
+    void apply(Data* values, Data* gradient);
+
+    /**
+     * applies adam to the values based on the gradients for the values.
+     *
+     * @param td                the thread data object which contains the gradients
+     * @param batch_size        the batch size which has been used for the batch
+     */
+    void apply(ThreadData* td, int batch_size);
+
+    /**
+     * Unused
+     */
+    void newEpoch() override;
+
+    /**
+     * Destructor to deallocate the moment estimates.
+     */
+    virtual ~Gd();
 
 };
 

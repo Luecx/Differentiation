@@ -74,7 +74,8 @@ enum ScoreFormat{
     CP,
     P,
     WDL,
-    UCI_MOVE
+    UCI_MOVE,
+    AGE
 };
 
 inline void initLookUpTable(){
@@ -225,22 +226,47 @@ struct Position{
 
         int16_t score = 0;
         // parse a score if one has been specified.
+        // check if the format equals age format which includes wdl and score [WDL] score
+        if(scoreFormat == AGE && fen.find('[') < fen.length()-1){
+            auto posWDLStart = fen.find_first_of('[');
+            auto posWDLEnd   = fen.find_first_of(']');
+            std::string wdl = fen.substr(posWDLStart+1,posWDLEnd - posWDLStart - 1);
+            std::string scr = fen.substr(posWDLEnd  +1);
+
+            int    wdlValue = (int)round(std::stod(wdl)*2);
+            int    scrValue = std::stoi(scr);
+
+            int16_t finalScore = scrValue;
+
+            if(wdlValue == 1){
+                // pass
+            }else if(wdlValue == 2){
+                // white won
+                finalScore += 20000; // > 10000
+            }else if(wdlValue == 0){
+                // black won
+                finalScore -= 20000; // < -10000
+            }
+
+            score = finalScore;
+        }
+        // parse singular scores or wdl values
         // this is the case if a semicolon (;) has been found. the value after the semicolon (;) is considered to
         // be the score. it will be stored in the last 16 bits
-        if(fen.find(';') < fen.length() - 1 && fen.find('#') >= fen.length()){
+        else if(fen.find(';') < fen.length() - 1 && fen.find('#') >= fen.length()){
 
             auto pos = fen.find_first_of(';');
             std::string relevant = fen.substr(pos+1, fen.size());
 
             if(scoreFormat == CP){
                 score = stoi(relevant);
-                if(abs(score) > 500)
+                if(abs(score) > 1500)
                     return false;
             }
 
             if(scoreFormat == P){
                 score = round(stod(relevant) * 100);
-                if(abs(score) > 500)
+                if(abs(score) > 1500)
                     return false;
             }
 
