@@ -16,6 +16,50 @@ constexpr int IN_SIZE     = 12 * 64;
 constexpr int HIDDEN_SIZE = 512;
 constexpr int OUTPUT_SIZE = 1;
 
+
+void computeScalars(Network& network, std::vector<Position>& positions){
+    Input            inp {};
+    Data             output {1};
+    float maxHiddenActivation = 0;
+    float maxOutputWeight     = std::max(network.getLayer(1)->getWeights()->max(),-network.getLayer(1)->getWeights()->min());
+    int idx = 0;
+    for(Position& p:positions){
+        dense::assign_input(p, inp, output);
+        network.evaluate(inp);
+        maxHiddenActivation = std::max(maxHiddenActivation, std::max(network.getThreadData(0)->output[0]->max(),-network.getThreadData(0)->output[0]->min()));
+        idx += 1;
+        if(idx%100000 == 0){
+            std::cout << idx << "   " << (1ul << 15) / maxHiddenActivation << "   " << (1ul << 15) / maxOutputWeight << std::endl;
+        }
+    }
+}
+
+void validateFens(Network& network){
+    Input            inp {};
+    Data             output {1};
+
+    std::string strings[]{
+        "8/p4k2/1p3n1p/2pp3P/3P4/1NP2Pr1/PPN1qP2/R5K1 w - - 0 33;0.1",
+        "4rrk1/2p1b1p1/p1p3q1/4p3/2P2n1p/1P1NR2P/PB3PP1/3R1QK1 b - - 2 24;0.1",
+        "r1bq1rk1/pp2b1pp/n1pp1n2/3P1p2/2P1p3/2N1P2N/PP2BPPP/R1BQ1RK1 b - - 2 10;0.1",
+        "r3k2r/ppp1pp1p/2nqb1pn/3p4/4P3/2PP4/PP1NBPPP/R2QK1NR w KQkq - 1 5;0.1",
+        "8/1p2pk1p/p1p1r1p1/3n4/8/5R2/PP3PPP/4R1K1 b - - 3 27;0.1",
+        "8/8/1p1k2p1/p1prp2p/P2n3P/6P1/1P1R1PK1/4R3 b - - 5 49;0.1",
+        "rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2;0.1",
+        "8/8/1p4p1/p1p2k1p/P2npP1P/4K1P1/1P6/3R4 w - - 6 54;0.1"
+    };
+
+    for(std::string& s:strings){
+        Position p {};
+        p.set(s);
+        dense::assign_input(p, inp, output);
+
+        Data* h = network.evaluate(inp);
+        std::cout << s << std::endl;
+        std::cout << *h << std::endl;
+    }
+}
+
 int           main() {
 
     initLookUpTable();
@@ -39,7 +83,7 @@ int           main() {
     }
 
     auto                         l1 = new DenseLayer<IN_SIZE, HIDDEN_SIZE, ReLU> {};
-    auto                         l2 = new DenseLayer<HIDDEN_SIZE, OUTPUT_SIZE, Sigmoid> {};
+    auto                         l2 = new DenseLayer<HIDDEN_SIZE, OUTPUT_SIZE, Linear> {};
     std::vector<LayerInterface*> layers {};
     layers.push_back(l1);
     layers.push_back(l2);
@@ -49,22 +93,10 @@ int           main() {
     lossFunction.wdlWeight = 0.5;
     network.setLoss(&lossFunction);
     network.setOptimiser(new Adam());
-//    network.loadWeights("koiNN1.net");
+//    network.loadWeights("../resources/networks/koi4.79_relative/250-approx.net");
 
-//    Position p {};
-//    p.set("8/5k2/8/8/3Q4/8/4K3/8 w - - 0 1;0.1");
-//    Input            inp {};
-//    Data             output {1};
-//    dense::assign_input(p, inp, output);
-//
-//    Data* h = network.evaluate(inp);
-//    std::cout << network.getThreadData(0)->output[0][0] << std::endl;
-//    std::cout << *network.getLayer(0)->getBias() << std::endl;
-//    std::cout << network.getLayer(0)->getWeights()->max() << std::endl;
-//    std::cout << network.getLayer(0)->getWeights()->min() << std::endl;
-//    std::cout << *h << std::endl;
 
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 1000; i++) {
 
         int   batch_count = ceil(positions.size() / (float) BATCH_SIZE);
 
@@ -87,7 +119,7 @@ int           main() {
         std::cout << std::endl;
         std::cout << "train loss=" << lossSum / positions.size() << std::endl;
 
-        network.saveWeights("koiNN1.net");
+        network.saveWeights("../resources/networks/koi4.79/" + std::to_string(i) + ".net");
         network.newEpoch();
     }
 
