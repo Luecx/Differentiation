@@ -390,6 +390,7 @@ inline void assign_input(Position& p, Input& input, Data& output){
     PositionIterator it {p};
 //    output(0) = 1 / (1 + exp(-it.score));
     output(0) = it.activePlayer == WHITE ? it.score : -it.score;
+//    output(0) = 1 / (1 + exp(-it.score * SIGMOID_SCALE));
     input.indices.clear();
     while (it.hasNext()) {
         it.next();
@@ -452,5 +453,49 @@ inline int assign_inputs_batch(std::vector<Position>& positions, int offset, std
     return count;
 }
 }    // namespace dense_pawn
+
+namespace dense_relative_extended {
+inline int  index(Square psq, Piece p, Color activePlayer) {
+
+//    Square    relativeSquare = psq;
+//    Color     pieceColor     = p >= BLACK_PAWN ? BLACK : WHITE;
+//    PieceType pieceType      = p % 6;
+//
+//    return relativeSquare + pieceColor * 64 * 6 + pieceType * 64;
+
+    Square    relativeSquare = activePlayer == WHITE ? psq : mirror(psq);
+    Color     pieceColor     = p >= BLACK_PAWN ? BLACK : WHITE;
+    PieceType pieceType      = p % 6;
+
+    return relativeSquare + (pieceColor == activePlayer) * 64 * 6 + pieceType * 64;
+
+}
+
+inline void assign_input(Position& p, Input& input, Data& output){
+    PositionIterator it {p};
+
+    output(0) = 1 / (1 + exp(-it.score * SIGMOID_SCALE));
+//    output(0) = it.activePlayer == WHITE ? it.score : -it.score;
+    input.indices.clear();
+    while (it.hasNext()) {
+        it.next();
+        input.indices.push_back(index(it.sq, it.piece, it.activePlayer));
+    }
+}
+
+inline int  assign_inputs_batch(std::vector<Position>& positions, int offset, std::vector<Input>& inputs, std::vector<Data>& targets){
+    int end = offset + inputs.size();
+    if (end > positions.size())
+        end = positions.size();
+
+    int count = end - offset;
+
+    for (int i = 0; i < count; i++) {
+        assign_input(positions[offset + i], inputs[i], targets[i]);
+    }
+
+    return count;
+}
+}
 
 #endif    // DIFFERENTIATION_MAPPINGS_H

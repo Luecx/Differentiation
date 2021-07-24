@@ -9,6 +9,8 @@
 #include "optimiser.h"
 
 #include <chrono>
+#include <algorithm>
+#include <random>
 
 constexpr int BATCH_SIZE  = 1024 * 16;
 
@@ -16,6 +18,7 @@ constexpr int IN_SIZE     = 12 * 64;
 constexpr int HIDDEN_SIZE = 512;
 constexpr int OUTPUT_SIZE = 1;
 
+using namespace dense_relative;
 
 void computeScalars(Network& network, std::vector<Position>& positions){
     Input            inp {};
@@ -24,7 +27,7 @@ void computeScalars(Network& network, std::vector<Position>& positions){
     float maxOutputWeight     = std::max(network.getLayer(1)->getWeights()->max(),-network.getLayer(1)->getWeights()->min());
     int idx = 0;
     for(Position& p:positions){
-        dense::assign_input(p, inp, output);
+        assign_input(p, inp, output);
         network.evaluate(inp);
         maxHiddenActivation = std::max(maxHiddenActivation, std::max(network.getThreadData(0)->output[0]->max(),-network.getThreadData(0)->output[0]->min()));
         idx += 1;
@@ -52,7 +55,7 @@ void validateFens(Network& network){
     for(std::string& s:strings){
         Position p {};
         p.set(s);
-        dense::assign_input(p, inp, output);
+        assign_input(p, inp, output);
 
         Data* h = network.evaluate(inp);
         std::cout << s << std::endl;
@@ -71,16 +74,58 @@ int           main() {
     //    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\fens_new_mixed.epd)", &positions, AGE);
 
 //    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi_4.79-filtered-mix.epd)", &positions, AGE);
-    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi_4.79-filtered-mix.bin)", &positions);
+//    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi_4.79-filtered-mix.bin)", &positions);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\seer\data_fixed_shuff.txt)", &positions, CP_SEER);
+//    write_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\seer\data_fixed_shuff.bin)", &positions);
+//    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\seer\data_fixed_shuff.bin)", &positions);
 
-    // creating buffers where inputs and targets will be stored for a batch
-    std::vector<Input> inputs {};
-    inputs.resize(BATCH_SIZE);
 
-    std::vector<Data> targets {};
-    for (int i = 0; i < BATCH_SIZE; i++) {
-        targets.emplace_back(Data {OUTPUT_SIZE});
-    }
+    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/00.1.epd)", &positions, AGE, 1000000);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/00.2.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/00.3.epd)", &positions, AGE);
+//
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/01.1.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/01.2.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/01.3.epd)", &positions, AGE);
+//
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/02.1.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/02.2.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/02.3.epd)", &positions, AGE);
+//
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/03.1.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/03.2.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/03.3.epd)", &positions, AGE);
+//
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/04.1.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/04.2.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/04.3.epd)", &positions, AGE);
+//
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/05.1.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/05.2.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/05.3.epd)", &positions, AGE);
+//
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/06.1.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/06.2.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/06.3.epd)", &positions, AGE);
+//
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/07.1.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/07.2.epd)", &positions, AGE);
+//    read_positions_txt(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/filtered/07.3.epd)", &positions, AGE);
+
+//    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/shuffled.bin)", &positions);
+
+
+//    write_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi5.13/shuffled.bin)", &positions);
+
+//    // creating buffers where inputs and targets will be stored for a batch
+//    std::vector<Input> inputs {};
+//    inputs.resize(BATCH_SIZE);
+//
+//    std::vector<Data> targets {};
+//    for (int i = 0; i < BATCH_SIZE; i++) {
+//        targets.emplace_back(Data {OUTPUT_SIZE});
+//    }
+
 
     auto                         l1 = new DenseLayer<IN_SIZE, HIDDEN_SIZE, ReLU> {};
     auto                         l2 = new DenseLayer<HIDDEN_SIZE, OUTPUT_SIZE, Linear> {};
@@ -89,39 +134,41 @@ int           main() {
     layers.push_back(l2);
 
     Network network {layers};
-    MSEmix  lossFunction {};
-    lossFunction.wdlWeight = 0.5;
+    MSEmix     lossFunction {};
+//    lossFunction.wdlWeight = 0.5;
     network.setLoss(&lossFunction);
     network.setOptimiser(new Adam());
-//    network.loadWeights("../resources/networks/koi4.79_relative/250-approx.net");
+    network.loadWeights("../resources/networks/koi5.13_relative/23.net");
 
-
-    for (int i = 0; i < 1000; i++) {
-
-        int   batch_count = ceil(positions.size() / (float) BATCH_SIZE);
-
-        float lossSum     = 0;
-
-        auto  start       = std::chrono::system_clock::now();
-
-        for (int batch = 0; batch < batch_count; batch++) {
-            // fill the inputs and outputs
-            int   batchsize = dense::assign_inputs_batch(positions, batch * BATCH_SIZE, inputs, targets);
-            float loss      = network.batch(inputs, targets, batchsize, true);
-
-            lossSum += loss * batchsize;
-            auto                          end  = std::chrono::system_clock::now();
-            std::chrono::duration<double> diff = end - start;
-
-            printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f speed=%-7d eps", i, batch, batch_count, loss, (int) ((batch * BATCH_SIZE + batchsize) / diff.count()));
-            std::cout << std::flush;
-        }
-        std::cout << std::endl;
-        std::cout << "train loss=" << lossSum / positions.size() << std::endl;
-
-        network.saveWeights("../resources/networks/koi4.79/" + std::to_string(i) + ".net");
-        network.newEpoch();
-    }
+    validateFens(network);
+    computeScalars(network, positions);
+//
+//    for (int i = 0; i < 1000; i++) {
+//
+//        int   batch_count = ceil(positions.size() / (float) BATCH_SIZE);
+//
+//        float lossSum     = 0;
+//
+//        auto  start       = std::chrono::system_clock::now();
+//
+//        for (int batch = 0; batch < batch_count; batch++) {
+//            // fill the inputs and outputs
+//            int   batchsize = assign_inputs_batch(positions, batch * BATCH_SIZE, inputs, targets);
+//            float loss      = network.batch(inputs, targets, batchsize, true);
+//
+//            lossSum += loss * batchsize;
+//            auto                          end  = std::chrono::system_clock::now();
+//            std::chrono::duration<double> diff = end - start;
+//
+//            printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f speed=%-7d eps", i, batch, batch_count, loss, (int) ((batch * BATCH_SIZE + batchsize) / diff.count()));
+//            std::cout << std::flush;
+//        }
+//        std::cout << std::endl;
+//        std::cout << "train loss=" << lossSum / positions.size() << std::endl;
+//
+//        network.saveWeights("../resources/networks/koi5.13_relative/" + std::to_string(i) + ".net");
+//        network.newEpoch();
+//    }
 
     return 0;
 }

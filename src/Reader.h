@@ -72,6 +72,7 @@ extern BitEntry lookUpTablePieces[12];
 
 enum ScoreFormat{
     CP,
+    CP_SEER,
     P,
     WDL,
     UCI_MOVE,
@@ -260,14 +261,18 @@ struct Position{
 
             if(scoreFormat == CP){
                 score = stoi(relevant);
-                if(abs(score) > 1500)
-                    return false;
+//                if(abs(score) > 1500)
+//                    return false;
             }
 
             if(scoreFormat == P){
                 score = round(stod(relevant) * 100);
-                if(abs(score) > 1500)
-                    return false;
+//                if(abs(score) > 1500)
+//                    return false;
+            }
+
+            if(scoreFormat == CP_SEER){
+                score = round(stod(relevant) * 400 / 1024);
             }
 
             if(scoreFormat == WDL){
@@ -346,12 +351,17 @@ public:
 
 };
 
-inline void read_positions_txt(const std::string &file, std::vector<Position> *positions, ScoreFormat scoreFormat = CP, int max_lines=-1) {
+inline void read_positions_txt(const std::string &file, std::vector<Position> *positions, ScoreFormat scoreFormat = CP, int max_lines=-1, int reserve=0) {
     std::ifstream infile(file);
     std::string line;
 
     if(!infile.is_open()){
         std::cout << "could not open: " << file << std::endl;
+    }
+
+    if(reserve != 0){
+        positions->reserve(reserve);
+        std::cout << "increased capacity to fit " << positions->capacity() << " entries" << std::endl;
     }
 
     int count = 0;
@@ -388,6 +398,7 @@ inline void read_positions_bin(const std::string &file, std::vector<Position> *p
         if(end > positions->size()) end = positions->size();
         fread(&positions->at(start), sizeof(Position), end-start, f);
         printf("\r[Reading positions] Current count=%d", end);
+        fflush(stdout);
     }
     std::cout << std::endl;
 
