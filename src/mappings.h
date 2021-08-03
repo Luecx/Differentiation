@@ -405,6 +405,7 @@ inline int  assign_inputs_batch(std::vector<Position>& positions, int offset, st
 
     int count = end - offset;
 
+#pragma omp parallel for schedule(auto) num_threads(UPDATE_THREADS)
     for (int i = 0; i < count; i++) {
         assign_input(positions[offset + i], inputs[i], targets[i]);
     }

@@ -19,6 +19,12 @@ struct ReLU : Activation{
     void backprop   (Data *out       , Data *in_grad   , Data *out_grad);
 };
 
+struct ClippedReLU : Activation{
+    float max = 127;
+    void apply      (Data *inp       , Data *out);
+    void backprop   (Data *out       , Data *in_grad   , Data *out_grad);
+};
+
 struct Linear : Activation {
     void apply      (Data *inp       , Data *out);
     void backprop   (Data *out       , Data *in_grad   , Data *out_grad);

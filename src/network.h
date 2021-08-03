@@ -49,6 +49,8 @@ public:
 
     LayerInterface* getLayer(int layer);
 
+    int layerCount();
+
     void loadWeights(const std::string &file){
         FILE *f = fopen(file.c_str(), "rb");
 

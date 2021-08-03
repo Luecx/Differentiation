@@ -161,6 +161,10 @@ LayerInterface* Network::getLayer(int layer){
     return layers[layer];
 }
 
+int Network::layerCount(){
+    return layers.size();
+}
+
 void Network::newEpoch() {
     if(optimiser != nullptr){
         optimiser->newEpoch();

@@ -59,6 +59,8 @@ public:
     void   randomiseGaussian(float mean, float deviation);
     void   randomiseKieren();
 
+    void   scale(float scalar);
+
     void   add(Data *other);
     void   add(Data *other, float scalar);
     void   sub(Data *other);

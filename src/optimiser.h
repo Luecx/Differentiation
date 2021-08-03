@@ -107,7 +107,7 @@ struct Gd : Optimiser{
     std::vector<LayerInterface*> layers;
 
     public:
-    double alpha = 0.0000005;
+    double alpha = 0.0001;
 
     /**
      * Function to init the first moment and second moment vectors

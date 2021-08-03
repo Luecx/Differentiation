@@ -377,20 +377,29 @@ inline void read_positions_txt(const std::string &file, std::vector<Position> *p
             if(count == max_lines){
                 break;
             }
+        }else{
+            std::cout << "could not load: " << line << std::endl;
         }
-
-
     }
     std::cout << std::endl;
 }
-inline void read_positions_bin(const std::string &file, std::vector<Position> *positions) {
+inline void read_positions_bin(const std::string &file, std::vector<Position> *positions, int max_chunks=-1) {
 
+    // read amount of values contained
     uint64_t        num;
     FILE *f = fopen(file.c_str(), "rb");
     fread(&num             , sizeof(uint64_t), 1  , f);
-    positions->resize(positions->size() + num);
 
+    // compute chunks
     int chunks = std::ceil(num / 1e6);
+
+    // correct chunks
+    if(max_chunks >= 0 && max_chunks < chunks){
+        chunks = max_chunks;
+        num    = chunks * 1e6;
+    }
+
+    positions->resize(positions->size() + num);
 
     for(int c = 0; c < chunks; c++){
         int start = c * 1e6;
