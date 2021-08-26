@@ -44,14 +44,14 @@ void ReLU::backprop(Data* out, Data* in_grad, Data* out_grad) {
     static __m256    lower      = _mm256_set1_ps(0);
     static const int opera      = 30;    // _CMP_GT_OQ
 
-    __m256*          outputVals = (__m256*) out->values;
-    __m256*          inp_grad   = (__m256*) in_grad->values;
-    __m256*          oup_grad   = (__m256*) out_grad->values;
+    auto*          outputVals = (__m256*) out->values;
+    auto*          inp_grad   = (__m256*) in_grad->values;
+    auto*          oup_grad   = (__m256*) out_grad->values;
 
     const int        size       = PARALLEL_SIZE_32_BIT(out->M);
 
     for (int i = 0; i < size / 8; i++) {
-        __m256 mask = _mm256_cmp_ps(outputVals[i], lower, opera);
+        auto mask = _mm256_cmp_ps(outputVals[i], lower, opera);
         inp_grad[i] = _mm256_blendv_ps(lower, oup_grad[i], mask);
     }
 
@@ -91,15 +91,15 @@ void ClippedReLU::backprop(Data* out, Data* in_grad, Data* out_grad) {
     static const int operaL      = 30;    // _CMP_GT_OQ
     static const int operaU      = 17;    // _CMP_LT_OQ
 
-    __m256*          outputVals = (__m256*) out->values;
-    __m256*          inp_grad   = (__m256*) in_grad->values;
-    __m256*          oup_grad   = (__m256*) out_grad->values;
+    auto*          outputVals = (__m256*) out->values;
+    auto*          inp_grad   = (__m256*) in_grad->values;
+    auto*          oup_grad   = (__m256*) out_grad->values;
 
     const int        size       = PARALLEL_SIZE_32_BIT(out->M);
 
     for (int i = 0; i < size / 8; i++) {
-        __m256 maskLower = _mm256_cmp_ps(outputVals[i], lower, operaL); // mask all bits larger than 0
-        __m256 maskUpper = _mm256_cmp_ps(outputVals[i], upper, operaU); // mask all bits lower than max
+        auto maskLower = _mm256_cmp_ps(outputVals[i], lower, operaL); // mask all bits larger than 0
+        auto maskUpper = _mm256_cmp_ps(outputVals[i], upper, operaU); // mask all bits lower than max
         inp_grad[i] = _mm256_blendv_ps(lower, oup_grad[i], maskLower);  // blend all which are larger than 0
         inp_grad[i] = _mm256_blendv_ps(lower, inp_grad[i], maskUpper);  // blend all which are lower than max
     }

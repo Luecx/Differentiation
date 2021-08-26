@@ -21,7 +21,7 @@ private:
 
 public:
 
-    Network(const std::vector<LayerInterface *> &layers);
+    explicit Network(const std::vector<LayerInterface *> &layers);
 
 //    Network(Network &&other);
 //

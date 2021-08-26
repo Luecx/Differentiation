@@ -73,9 +73,7 @@ void Gd::apply(Data *values, Data *gradient) {
     }
 }
 
-Gd::~Gd() {
-
-}
+Gd::~Gd() = default;
 
 void Gd::apply(ThreadData *td, int batch_size) {
     float old_alpha = alpha;

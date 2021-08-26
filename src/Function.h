@@ -15,29 +15,29 @@ struct Activation{
 };
 
 struct ReLU : Activation{
-    void apply      (Data *inp       , Data *out);
-    void backprop   (Data *out       , Data *in_grad   , Data *out_grad);
+    void apply      (Data *inp       , Data *out) override;
+    void backprop   (Data *out       , Data *in_grad   , Data *out_grad) override;
 };
 
 struct ClippedReLU : Activation{
     float max = 127;
-    void apply      (Data *inp       , Data *out);
-    void backprop   (Data *out       , Data *in_grad   , Data *out_grad);
+    void apply      (Data *inp       , Data *out) override;
+    void backprop   (Data *out       , Data *in_grad   , Data *out_grad) override;
 };
 
 struct Linear : Activation {
-    void apply      (Data *inp       , Data *out);
-    void backprop   (Data *out       , Data *in_grad   , Data *out_grad);
+    void apply      (Data *inp       , Data *out) override;
+    void backprop   (Data *out       , Data *in_grad   , Data *out_grad) override;
 };
 
 struct Sigmoid : Activation{
-    void apply      (Data *inp       , Data *out) {
+    void apply      (Data *inp       , Data *out) override {
         assert(out->M == out->M);
         for(int i = 0; i < out->M; i++){
             (*out)(i) = 1.0 / (1 + expf(-(*inp)(i) * SIGMOID_SCALE));
         }
     }
-    void backprop   (Data *out       , Data *in_grad   , Data *out_grad){
+    void backprop   (Data *out       , Data *in_grad   , Data *out_grad) override{
         assert(out->M == out->M);
         for(int i = 0; i < out->M; i++){
             (*in_grad)(i) = (*out_grad)(i) * ((*out)(i) * (1-(*out)(i))) * SIGMOID_SCALE;

@@ -6,7 +6,7 @@
 #define DIFFERENTIATION_DENSELAYER_H
 
 #include "Function.h"
-#include "math.h"
+#include <cmath>
 #include "Layer.h"
 #include "config.h"
 #include "matmul.h"
@@ -34,7 +34,7 @@ public:
 //        bias   .randomise(0, 1.0 / sqrt(I));
     }
 
-    void apply(ThreadData* td){
+    void apply(ThreadData* td) override{
        this->apply(
                td->output[layerID-1],
                td->output[layerID]);
@@ -44,7 +44,7 @@ public:
         out->add(&bias);
         f.apply(out, out);
     }
-    void apply(Input *in, ThreadData* td){
+    void apply(Input *in, ThreadData* td) override{
         this->apply(in, td->output[layerID]);
     }
     void apply(Input *in, Data *out){
@@ -58,7 +58,7 @@ public:
 
 
     void backprop(
-            ThreadData* td){
+            ThreadData* td) override{
         this->backprop(
                 td->output[layerID-1],
                 td->output[layerID],
@@ -83,7 +83,7 @@ public:
 
     void backprop(
             Input *in,
-            ThreadData* td){
+            ThreadData* td) override{
         this->backprop(
                 in,
                 td->output[layerID],

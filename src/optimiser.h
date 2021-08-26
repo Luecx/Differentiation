@@ -4,7 +4,7 @@
 
 #include "Data.h"
 #include "Layer.h"
-#include "math.h"
+#include <cmath>
 
 /**
  * basic interface for all optimisers.
@@ -63,7 +63,7 @@ public:
      * Function to init the first moment and second moment vectors
      * @param layers        the layers which the network consists of
      */
-    void init(std::vector<LayerInterface*> layers);
+    void init(std::vector<LayerInterface*> layers) override;
 
     /**
      * applies adam to the values based on the gradients for the values.
@@ -81,7 +81,7 @@ public:
      * @param td                the thread data object which contains the gradients
      * @param batch_size        the batch size which has been used for the batch
      */
-    void apply(ThreadData* td, int batch_size);
+    void apply(ThreadData* td, int batch_size) override;
 
     /**
      * Unused
@@ -113,7 +113,7 @@ struct Gd : Optimiser{
      * Function to init the first moment and second moment vectors
      * @param layers        the layers which the network consists of
      */
-    void init(std::vector<LayerInterface*> layers);
+    void init(std::vector<LayerInterface*> layers) override;
 
     /**
      * applies adam to the values based on the gradients for the values.
@@ -131,7 +131,7 @@ struct Gd : Optimiser{
      * @param td                the thread data object which contains the gradients
      * @param batch_size        the batch size which has been used for the batch
      */
-    void apply(ThreadData* td, int batch_size);
+    void apply(ThreadData* td, int batch_size) override;
 
     /**
      * Unused

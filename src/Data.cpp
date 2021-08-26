@@ -45,13 +45,9 @@ Data::~Data() {
     }
 }
 
-float  Data::get(int height) const { return values[height]; }
+float& Data::get(int height) const { return values[height]; }
 
-float& Data::get(int height) { return values[height]; }
-
-float  Data::get(int height, int width) const { return values[width + height * N]; }
-
-float& Data::get(int height, int width) { return values[width + height * N]; }
+float& Data::get(int height, int width) const { return values[width + height * N]; }
 
 float Data::operator()(int height) const { return get(height); }
 
@@ -77,7 +73,7 @@ float Data::max() const {
     return m;
 }
 
-void Data::sort() { std::sort(values, values + size(), std::greater<float>()); }
+void Data::sort() const { std::sort(values, values + size(), std::greater<float>()); }
 
 int  Data::getM() const { return M; }
 
@@ -96,7 +92,7 @@ void Data::randomise(float lower, float upper) const {
     }
 }
 
-void Data::randomiseGaussian(float mean, float deviation) {
+void Data::randomiseGaussian(float mean, float deviation) const {
     std::default_random_engine      generator;
     std::normal_distribution<float> distribution(0, deviation);
     for (int i = 0; i < M * N; i++) {
@@ -104,7 +100,7 @@ void Data::randomiseGaussian(float mean, float deviation) {
     }
 }
 
-void Data::randomiseKieren() {
+void Data::randomiseKieren() const {
 #define uniform() ((float) (rand() + 1) / ((float) RAND_MAX + 2))
 #define random()  (sqrtf(-2.0 * log(uniform())) * cos(2 * M_PI * uniform()))
 
@@ -115,7 +111,7 @@ void Data::randomiseKieren() {
 #undef random
 }
 
-void Data::scale(float scale) {
+void Data::scale(float scale) const {
     for (int i = 0; i < M * N; i++) {
         this->values[i] *= scale;
     }
@@ -126,8 +122,8 @@ void Data::add(Data* other) {
     const int size = PARALLEL_SIZE_32_BIT(M * N);
     for (int i = 0; i < size; i += 8) {
         // load our values and the target values into the register
-        __m256* other_values = (__m256*) (&other->values[i]);
-        __m256* our_values   = (__m256*) (&this->values[i]);
+        auto* other_values = (__m256*) (&other->values[i]);
+        auto* our_values   = (__m256*) (&this->values[i]);
         // stores the sum of our and their values inside the other data object.
         *our_values          = _mm256_add_ps(*other_values, *our_values);
     }
@@ -142,8 +138,8 @@ void Data::add(Data* other, float scalar) {
     __m256    s    = _mm256_set1_ps(scalar);
     for (int i = 0; i < size; i += 8) {
         // load our values and the target values into the register
-        __m256* other_values = (__m256*) (&other->values[i]);
-        __m256* our_values   = (__m256*) (&this->values[i]);
+        auto* other_values = (__m256*) (&other->values[i]);
+        auto* our_values   = (__m256*) (&this->values[i]);
         // stores the sum of our and their values inside the other data object.
         *our_values          = _mm256_add_ps(_mm256_mul_ps(s, *other_values), *our_values);
     }
@@ -157,8 +153,8 @@ void Data::sub(Data* other) {
     const int size = PARALLEL_SIZE_32_BIT(M * N);
     for (int i = 0; i < size; i += 8) {
         // load our values and the target values into the register
-        __m256* other_values = (__m256*) (&other->values[i]);
-        __m256* our_values   = (__m256*) (&this->values[i]);
+        auto* other_values = (__m256*) (&other->values[i]);
+        auto* our_values   = (__m256*) (&this->values[i]);
         // stores the sum of our and their values inside the other data object.
         *our_values          = _mm256_sub_ps(*our_values, *other_values);
     }

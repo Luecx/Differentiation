@@ -160,7 +160,7 @@ struct Position{
         Color activePlayer = WHITE;
         // temporarely store the pieces in a table with 64 entries and initialise those pieces to -1 (no piece)
         Piece pieces[64]{};
-        for(int i = 0; i < 64; i++) pieces[i] = -1;
+        for(signed char & piece : pieces) piece = -1;
         // keep track of the row/col
         int row = 7;
         int col = 0;
@@ -315,14 +315,13 @@ public:
     // the active player for the position. does not change with "next()"
     Color      activePlayer;
     // the last piece which has been parsed
-    Piece      piece;
+    Piece      piece{};
     // the last square which has been parsed
     Square     sq = -1;
     // the last 16 bits are used for a score which might have been read from the fen
     int16_t    score = 0;
 
-
-    PositionIterator(Position& p){
+    explicit PositionIterator(Position& p){
         // extract the active player which is stored in the very first bit
         activePlayer = p.bits.test(0);
         // when reading the score, we need to consider to move it from being unsigned to signed
@@ -330,7 +329,7 @@ public:
         this->p = p;
     };
 
-    bool hasNext(){
+    bool hasNext() const{
         // check if there is a 1 left in the bitset which would indicate a piece
         return p.bits._Find_next(read_index) < 22 * 8;
     }
@@ -399,11 +398,13 @@ inline void read_positions_bin(const std::string &file, std::vector<Position> *p
         num    = chunks * 1e6;
     }
 
+    int offset = positions->size();
+
     positions->resize(positions->size() + num);
 
     for(int c = 0; c < chunks; c++){
-        int start = c * 1e6;
-        int end   = c * 1e6 + 1e6;
+        int start = c * 1e6 + offset;
+        int end   = c * 1e6 + 1e6 + offset;
         if(end > positions->size()) end = positions->size();
         fread(&positions->at(start), sizeof(Position), end-start, f);
         printf("\r[Reading positions] Current count=%d", end);

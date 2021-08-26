@@ -14,9 +14,9 @@ void matmul(
     assert(weights->N % 8 == 0);
 
 
-    __m256* wgt       = (__m256*)(weights->values);
-    __m256* inp       = (__m256*)(vector ->values);
-    __m256* output    = (__m256*)(target ->values);
+    auto* wgt       = (__m256*)(weights->values);
+    auto* inp       = (__m256*)(vector ->values);
+    auto* output    = (__m256*)(target ->values);
 
 
     const int    row_chunks = weights->M / 8;
@@ -62,10 +62,10 @@ void matmul(
         acc0 = _mm256_hadd_ps(acc0, acc2);
         acc4 = _mm256_hadd_ps(acc4, acc6);
 
-        __m128 sumabcd1 = _mm256_extractf128_ps(acc0, 0);
-        __m128 sumabcd2 = _mm256_extractf128_ps(acc0, 1);
-        __m128 sumefgh1 = _mm256_extractf128_ps(acc4, 0);
-        __m128 sumefgh2 = _mm256_extractf128_ps(acc4, 1);
+        auto sumabcd1 = _mm256_extractf128_ps(acc0, 0);
+        auto sumabcd2 = _mm256_extractf128_ps(acc0, 1);
+        auto sumefgh1 = _mm256_extractf128_ps(acc4, 0);
+        auto sumefgh2 = _mm256_extractf128_ps(acc4, 1);
 
         sumabcd1 = _mm_add_ps(sumabcd1, sumabcd2);
         sumefgh1 = _mm_add_ps(sumefgh1, sumefgh2);
@@ -87,7 +87,6 @@ void matmul(
                               acc0[4] + acc0[5] + acc0[6] + acc0[7];
     }
 
-    return;
 
 }
 
@@ -108,10 +107,10 @@ void matmul_backprop(
 
     vector_grad->clear();
 
-    __m256* wgt             = (__m256*)(weights           ->values);
-    __m256* wgt_grd         = (__m256*)(weights_grad      ->values);
-    __m256* inp             = (__m256*)(vector            ->values);
-    __m256* inp_grd         = (__m256*)(vector_grad       ->values);
+    auto* wgt             = (__m256*)(weights           ->values);
+    auto* wgt_grd         = (__m256*)(weights_grad      ->values);
+    auto* inp             = (__m256*)(vector            ->values);
+    auto* inp_grd         = (__m256*)(vector_grad       ->values);
 
     const int    row_chunks = weights->M;
     const int column_chunks = weights->N / 8;
@@ -140,9 +139,9 @@ void matmul_backprop(
     assert(weights->N % 8 == 0);
 
 
-    __m256* wgt             = (__m256*)(weights           ->values);
-    __m256* wgt_grd         = (__m256*)(weights_grad      ->values);
-    __m256* inp             = (__m256*)(vector            ->values);
+    auto* wgt             = (__m256*)(weights           ->values);
+    auto* wgt_grd         = (__m256*)(weights_grad      ->values);
+    auto* inp             = (__m256*)(vector            ->values);
 
     const int    row_chunks = weights->M;
     const int column_chunks = weights->N / 8;
