@@ -11,6 +11,7 @@
 #include <vector>
 #include <fstream>
 #include <cmath>
+#include "logging.h"
 
 
 typedef int8_t Piece;
@@ -381,6 +382,7 @@ inline void read_positions_txt(const std::string &file, std::vector<Position> *p
         }
     }
     std::cout << std::endl;
+    logging::write("loaded " + std::to_string(count) + " positions from: " + file);
 }
 inline void read_positions_bin(const std::string &file, std::vector<Position> *positions, int max_chunks=-1) {
 
@@ -411,6 +413,7 @@ inline void read_positions_bin(const std::string &file, std::vector<Position> *p
         fflush(stdout);
     }
     std::cout << std::endl;
+    logging::write("loaded " + std::to_string(num) + " positions from: " + file);
 
     fclose(f);
 }
@@ -430,6 +433,7 @@ inline void write_positions_bin(const std::string &file, std::vector<Position> *
         printf("\r[Writing positions] Current count=%d", end);
     }
     std::cout << std::endl;
+    logging::write("written " + std::to_string(num) + " positions to: " + file);
 
     fclose(f);
 

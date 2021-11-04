@@ -36,6 +36,11 @@ struct Optimiser{
      * This is mostly unused.
      */
     virtual void newEpoch() = 0;
+
+    /**
+     * Used to display information to the log file
+     */
+    virtual void logOverview() = 0;
 };
 
 /**
@@ -54,7 +59,7 @@ private:
 
 public:
     double alpha = 0.01;
-    double beta1 = 0.99;
+    double beta1 = 0.9;
     double beta2 = 0.999;
     double eps   = 1e-8;
 
@@ -87,6 +92,8 @@ public:
      * Unused
      */
     void newEpoch() override;
+
+    void   logOverview() override;
 
     /**
      * Destructor to deallocate the moment estimates.

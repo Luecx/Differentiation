@@ -10,11 +10,11 @@ void Linear::apply(Data* inp, Data* out) {
     assert(out->M == out->M);
     (*out) = (*inp);
 }
-
 void Linear::backprop(Data* out, Data* in_grad, Data* out_grad) {
     assert(out->M == out->M);
     (*in_grad) = (*out_grad);
 }
+void Linear::logOverview() {logging::write("Linear");}
 
 void ReLU::apply(Data* inp, Data* out) {
 
@@ -37,7 +37,6 @@ void ReLU::apply(Data* inp, Data* out) {
         outputVals[i] = inputVals[i] < 0 ? 0 : inputVals[i];
     }
 }
-
 void ReLU::backprop(Data* out, Data* in_grad, Data* out_grad) {
     assert(out->M == out->M);
 
@@ -59,6 +58,7 @@ void ReLU::backprop(Data* out, Data* in_grad, Data* out_grad) {
         (*in_grad)(i) = (*out)(i) > 0 ? (*out_grad)(i) : 0;
     }
 }
+void ReLU::logOverview() {logging::write("ReLU");}
 
 void ClippedReLU::apply(Data* inp, Data* out) {
 
@@ -82,7 +82,6 @@ void ClippedReLU::apply(Data* inp, Data* out) {
         outputVals[i] = inputVals[i] < 0 ? 0 : inputVals[i];
     }
 }
-
 void ClippedReLU::backprop(Data* out, Data* in_grad, Data* out_grad) {
     assert(out->M == out->M);
 
@@ -108,6 +107,22 @@ void ClippedReLU::backprop(Data* out, Data* in_grad, Data* out_grad) {
         (*in_grad)(i) = ((*out)(i) > 0 && (*out)(i) < max) ? (*out_grad)(i) : 0;
     }
 }
+void ClippedReLU::logOverview() {logging::write("ClippedReLU (" + std::to_string(max) + ")");}
+
+void Sigmoid::apply(Data* inp, Data* out) {
+    for(int i = 0; i < out->M; i++){
+        (*out)(i) = 1.0 / (1 + expf(-(*inp)(i) * SIGMOID_SCALE));
+    }
+}
+void Sigmoid::backprop(Data* out, Data* in_grad, Data* out_grad) {
+    for(int i = 0; i < out->M; i++){
+        (*in_grad)(i) = (*out_grad)(i) * ((*out)(i) * (1-(*out)(i))) * SIGMOID_SCALE;
+    }
+}
+void Sigmoid::logOverview() {logging::write("Sigmoid (" + std::to_string(SIGMOID_SCALE) + ")");}
+
+
+
 
 float MSE::apply(Data* out, Data* target) {
     assert(out->M == out->M);
@@ -117,7 +132,6 @@ float MSE::apply(Data* out, Data* target) {
     }
     return loss / out->M;
 }
-
 float MSE::backprop(Data* out, Data* target, Data* out_grad) {
     assert(out->M == out->M);
     float loss = 0;
@@ -129,61 +143,5 @@ float MSE::backprop(Data* out, Data* target, Data* out_grad) {
     }
     return loss / out->M;
 }
+void MSE::logOverview() {logging::write("MSE");}
 
-float MSEmix::apply(Data* out, Data* target) {
-    assert(out->M == target->M);
-    assert(out->M == 1);
-    float       loss      = 0;
-
-    const float cpWeight  = 1 - wdlWeight;
-
-    int16_t     tar       = target->get(0);
-    float       output    = out->get(0);
-    float       WDLtarget = 0.5;
-    if (tar > 10000) {
-        WDLtarget = 1;
-        tar -= 20000;
-    }
-    if (tar < -10000) {
-        WDLtarget = 0;
-        tar += 20000;
-    }
-
-    float Ptarget = 1 / (1 + expf(-tar * SIGMOID_SCALE));
-
-    loss          = powf(output - Ptarget, 2.0) * cpWeight + powf(output - WDLtarget, 2.0) * wdlWeight;
-
-    return loss;
-}
-
-float MSEmix::backprop(Data* out, Data* target, Data* out_grad) {
-    assert(out->M == target->M);
-    assert(out->M == 1);
-    float       loss      = 0;
-
-    const float cpWeight  = 1 - wdlWeight;
-
-    int16_t     tar       = target->get(0);
-    float       output    = out->get(0);
-    float       WDLtarget = 0.5;
-    if (tar > 10000) {
-        WDLtarget = 1;
-        tar -= 20000;
-    }
-    if (tar < -10000) {
-        WDLtarget = 0;
-        tar += 20000;
-    }
-
-    float Ptarget = 1 / (1 + expf(-tar * SIGMOID_SCALE));
-
-    loss          = powf(output - Ptarget, 2.0) * cpWeight + powf(output - WDLtarget, 2.0) * wdlWeight;
-
-    float grad    = 0;
-    grad += 2.0f * (output - Ptarget) * cpWeight;
-    grad += 2.0f * (output - WDLtarget) * wdlWeight;
-
-    out_grad->get(0) = grad;
-
-    return loss;
-}

@@ -51,46 +51,13 @@ public:
 
     int layerCount();
 
-    void loadWeights(const std::string &file){
-        FILE *f = fopen(file.c_str(), "rb");
+    void loadWeights(const std::string &file);
 
-        // figure out how many entries we will store
-        uint64_t count = 0;
-        for(LayerInterface* l:layers){
-            count += l->getWeights()->size();
-            count += l->getBias()->size();
-        }
-
-        uint64_t fileCount = 0;
-        fread(&fileCount, sizeof(uint64_t), 1, f);
-        assert(count == fileCount);
-
-        for(LayerInterface* l:layers){
-            fread(l->getWeights()->values, sizeof(float), l->getWeights()->size(), f);
-            fread(l->getBias   ()->values, sizeof(float), l->getBias   ()->size(), f);
-        }
-        fclose(f);
-    }
-
-    void saveWeights(const std::string &file){
-        FILE *f = fopen(file.c_str(), "wb");
-
-        // figure out how many entries we will store
-        uint64_t count = 0;
-        for(LayerInterface* l:layers){
-            count += l->getWeights()->size();
-            count += l->getBias()->size();
-        }
-
-        fwrite(&count, sizeof(uint64_t), 1, f);
-        for(LayerInterface* l:layers){
-            fwrite(l->getWeights()->values, sizeof(float), l->getWeights()->size(), f);
-            fwrite(l->getBias   ()->values, sizeof(float), l->getBias   ()->size(), f);
-        }
-        fclose(f);
-    }
+    void saveWeights(const std::string &file);
 
     void newEpoch();
+
+    void logOverview();
 
 //    void train(std::vector<Position>& positions){
 //

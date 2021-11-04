@@ -92,6 +92,7 @@ public:
     Data *getWeights() override {
         return &weights;
     }
+    Activation* getActivationFunction() override { return &f; }
 };
 
 #endif //DIFFERENTIATION_DUPLICATEDENSELAYER_H

@@ -147,6 +147,7 @@ public:
     Data *newBiasInstance() override {
         return new Data(O);
     }
+    Activation* getActivationFunction() override { return &f; }
 };
 
 

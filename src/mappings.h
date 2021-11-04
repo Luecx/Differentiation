@@ -389,6 +389,73 @@ inline int  index(Square psq, Piece p, Color activePlayer) {
 inline void assign_input(Position& p, Input& input, Data& output){
     PositionIterator it {p};
 //    output(0) = 1 / (1 + exp(-it.score));
+
+    int16_t     tar       = it.activePlayer == WHITE ? it.score : -it.score;
+    float       WDLtarget = 0.5;
+    if (tar > 10000) {
+        WDLtarget = 1;
+        tar -= 20000;
+    }
+    if (tar < -10000) {
+        WDLtarget = 0;
+        tar += 20000;
+    }
+    float Ptarget = 1 / (1 + expf(-tar * SIGMOID_SCALE));
+
+
+    input.indices.clear();
+    int phase_weights[6]{0,1,1,2,4,0};
+    int phase_count = 24;
+    while (it.hasNext()) {
+        it.next();
+        input.indices.push_back(index(it.sq, it.piece, it.activePlayer));
+        phase_count -= phase_weights[it.piece % 6];
+    }
+    output.clear();
+    if(phase_count > 12){
+        output(0) = (WDLtarget + Ptarget) / 2;
+    }else{
+        output(1) = (WDLtarget + Ptarget) / 2;
+    }
+}
+
+inline int  assign_inputs_batch(std::vector<Position>& positions, int offset, std::vector<Input>& inputs, std::vector<Data>& targets){
+    int end = offset + inputs.size();
+    if (end > positions.size())
+        end = positions.size();
+
+    int count = end - offset;
+
+#pragma omp parallel for schedule(auto) num_threads(UPDATE_THREADS)
+    for (int i = 0; i < count; i++) {
+        assign_input(positions[offset + i], inputs[i], targets[i]);
+    }
+
+    return count;
+}
+}    // namespace dense
+
+namespace dense_relative_to_king {
+
+inline int  index(Square psq, Piece p, Color activePlayer) {
+
+//    Square    relativeSquare = psq;
+//    Color     pieceColor     = p >= BLACK_PAWN ? BLACK : WHITE;
+//    PieceType pieceType      = p % 6;
+//
+//    return relativeSquare + pieceColor * 64 * 6 + pieceType * 64;
+
+    Square    relativeSquare = activePlayer == WHITE ? psq : mirror(psq);
+    Color     pieceColor     = p >= BLACK_PAWN ? BLACK : WHITE;
+    PieceType pieceType      = p % 6;
+
+    return relativeSquare + (pieceColor == activePlayer) * 64 * 6 + pieceType * 64;
+
+}
+
+inline void assign_input(Position& p, Input& input, Data& output){
+    PositionIterator it {p};
+//    output(0) = 1 / (1 + exp(-it.score));
     output(0) = it.activePlayer == WHITE ? it.score : -it.score;
 //    output(0) = 1 / (1 + exp(-it.score * SIGMOID_SCALE));
     input.indices.clear();

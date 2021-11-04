@@ -3,6 +3,8 @@
 //
 #include "optimiser.h"
 
+#include "logging.h"
+
 void Adam::init(std::vector<LayerInterface *> layers) {
     this->count = layers.size();
     this->layers = layers;
@@ -58,7 +60,13 @@ void Adam::apply(ThreadData *td, int batch_size) {
 void Adam::newEpoch() {
     time += 1;
 }
-
+void Adam::logOverview() {
+    logging::write("Adam:");
+    logging::write("    alpha: "+std::to_string(alpha));
+    logging::write("    beta1: "+std::to_string(beta1));
+    logging::write("    beta1: "+std::to_string(beta2));
+    logging::write("    eps  : "+std::to_string(eps));
+}
 
 void Gd::init(std::vector<LayerInterface *> layers) {
     this->count = layers.size();

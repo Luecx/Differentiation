@@ -6,7 +6,7 @@
 #define DIFFERENTIATION_LAYER_H
 
 #include "Data.h"
-
+#include "Function.h"
 
 class ThreadData;
 
@@ -20,6 +20,7 @@ public:
     virtual int getOutputSize() = 0;
     virtual int getInputSize()  = 0;
 
+    virtual Activation* getActivationFunction() = 0;
 
     virtual Data* newOutputInstance() = 0;
     virtual Data* newWeightInstance() = 0;
@@ -32,6 +33,7 @@ public:
     virtual void backprop(Data *input,ThreadData* td) = 0;
     virtual void apply(Input *input, ThreadData* td) = 0;
     virtual void backprop(Input *input,ThreadData* td) = 0;
+
     void assignID(int id){
         layerID = id;
     }
