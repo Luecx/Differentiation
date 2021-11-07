@@ -281,7 +281,7 @@ void matmul(
 
 
         if(index < inputOffset) continue;
-        if(index > weights->N - inputOffset) continue;
+        if(index >= weights->N + inputOffset) continue;
         index -= inputOffset;
 
         // we can only do the chunks of 8 with avx instructions
@@ -328,7 +328,7 @@ void matmul_backprop(
     for(uint32_t &index:vector->indices){
 
         if(index < inputOffset) continue;
-        if(index > weights_grad->N - inputOffset) continue;
+        if(index >= weights_grad->N + inputOffset) continue;
         index -= inputOffset;
 
         // we can only do the chunks of 8 with avx instructions
@@ -340,9 +340,9 @@ void matmul_backprop(
 
             _mm256_store_ps(&(weightsGrad[index * weights_grad->M + n]), _mm256_add_ps(wgrad, ograd));
         }
-        for(int n = size; n < weights_grad->M; n++){
-            weightsGrad[index * weights_grad->M + n] += outputGrad[n];
-        }
+//        for(int n = size; n < weights_grad->M; n++){
+//            weightsGrad[index * weights_grad->M + n] += outputGrad[n];
+//        }
     }
 
 }

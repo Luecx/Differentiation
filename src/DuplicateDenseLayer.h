@@ -18,8 +18,8 @@ public:
     Data*     im2_g[NN_THREADS]          {};
 
     DuplicateDenseLayer() {
-        weights.randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
-        bias   .randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
+        weights.randomiseGaussian(0, sqrt(1.0 / I));
+//        bias.randomiseGaussian(0,0);
     }
 
 
@@ -52,8 +52,10 @@ public:
             ThreadData *td){
         f.backprop(im1[td->threadID], im1_g[td->threadID],im1_g[td->threadID]);
         f.backprop(im2[td->threadID], im2_g[td->threadID],im2_g[td->threadID]);
-        td->bias_gradient[layerID] = im1_g[td->threadID];
-        td->bias_gradient[layerID]->add(im2_g[td->threadID]);
+
+
+        *td->bias_gradient[layerID] =   *im1_g[td->threadID];
+         td->bias_gradient[layerID]->add(im2_g[td->threadID]);
 
         matmul_backprop(in1, td->weight_gradient[layerID], im1_g[td->threadID], 0);
         matmul_backprop(in1, td->weight_gradient[layerID], im2_g[td->threadID], I);

@@ -357,6 +357,7 @@ inline void read_positions_txt(const std::string &file, std::vector<Position> *p
 
     if(!infile.is_open()){
         std::cout << "could not open: " << file << std::endl;
+        logging::write("could not open " + file);
     }
 
     if(reserve != 0){
@@ -389,6 +390,10 @@ inline void read_positions_bin(const std::string &file, std::vector<Position> *p
     // read amount of values contained
     uint64_t        num;
     FILE *f = fopen(file.c_str(), "rb");
+    if(f == nullptr){
+        logging::write("could not open " + file);
+        return;
+    }
     fread(&num             , sizeof(uint64_t), 1  , f);
 
     // compute chunks
