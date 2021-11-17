@@ -5,7 +5,7 @@
 #ifndef DIFFERENTIATION_MERGE_H
 #define DIFFERENTIATION_MERGE_H
 
-#include "Layer.h"
+#include "../layers/Layer.h"
 
 /**
  * Used to merge multiple gradients.
@@ -16,6 +16,6 @@
  *
  * @param td The threadData's to be collapsed and cleared
  */
-void merge_gradients(ThreadData **td);
+void merge_gradients(ThreadData **td, Data* activated_inputs= nullptr);
 
 #endif //DIFFERENTIATION_MERGE_H

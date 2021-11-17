@@ -1,13 +1,17 @@
 
-#include "Data.h"
-#include "DenseLayer.h"
-#include "DuplicateDenseLayer.h"
-#include "Function.h"
-#include "Input.h"
-#include "Reader.h"
+#include "activations/ReLU.h"
+#include "activations/Sigmoid.h"
+#include "layers/DenseLayer.h"
+#include "layers/DuplicateDenseLayer.h"
+#include "loss/MSE.h"
 #include "mappings.h"
-#include "network.h"
-#include "optimiser.h"
+#include "misc/Reader.h"
+#include "network/network.h"
+#include "optimiser/Adam.h"
+#include "optimiser/optimiser.h"
+#include "structures/Data.h"
+#include "structures/Input.h"
+#include "verify/checkGradients.h"
 
 #include <algorithm>
 #include <chrono>
@@ -15,8 +19,9 @@
 
 constexpr int BATCH_SIZE   = 1024 * 16;
 
-constexpr int IN_SIZE      = 12 * 64 * 2;
+constexpr int IN_SIZE      = 12 * 64;
 constexpr int HIDDEN1_SIZE = 512;
+constexpr int HIDDEN2_SIZE = 32;
 constexpr int OUTPUT_SIZE  = 1;
 
 using namespace dense_relative;
@@ -141,14 +146,14 @@ int main() {
     // ----------------------------------------------- LOADING DATA ------------------------------------------------------------
 
 
-    logging::open(path + "log1.txt");
+//    logging::open(path + "log1.txt");
 
     std::vector<Position> positions {};
-    read_positions_bin("../../Koivisto/resources/all.bin", &positions);
+//    read_positions_bin("../../Koivisto/resources/all.bin", &positions);
 //    for(int i = 0; i < 96; i++){
 //        read_positions_bin("_" + std::to_string(i), &positions);
 //    }
-//    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\netdev\v6.24_generation\kim1.bin)", &positions);
+    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\netdev\v6.24_generation\kim1.bin)", &positions,1);
 //    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\netdev\v6.24_generation\kim2.bin)", &positions);
 //    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\netdev\v6.24_generation\kim3.bin)", &positions);
 
@@ -156,6 +161,7 @@ int main() {
 
     auto rng = std::default_random_engine {};
     std::shuffle(std::begin(positions), std::end(positions), rng);
+
 
     // ----------------------------------------------- BATCH PREPARATION ------------------------------------------------------------
 
@@ -170,25 +176,33 @@ int main() {
 
     // ----------------------------------------------- NETWORK STRUCTURE ------------------------------------------------------------
 
-    auto                         l1 = new DuplicateDenseLayer<IN_SIZE, HIDDEN1_SIZE, ReLU> {};
-    auto                         l2 = new DenseLayer         <HIDDEN1_SIZE * 2, OUTPUT_SIZE, Sigmoid> {};
+    auto                         l1 = new DuplicateDenseLayer<IN_SIZE, HIDDEN1_SIZE, ReLU> {64};
+    auto                         l2 = new DenseLayer         <HIDDEN1_SIZE * 2, HIDDEN2_SIZE, ReLU> {};
+    auto                         l3 = new DenseLayer         <HIDDEN2_SIZE, OUTPUT_SIZE, Sigmoid> {};
     std::vector<LayerInterface*> layers {};
     layers.push_back(l1);
     layers.push_back(l2);
+    layers.push_back(l3);
 
     Network network {layers};
     MSE     lossFunction {};
     Adam    adam {};
-    adam.alpha = 0.001;
+    adam.alpha = 0.01;
     network.setLoss(&lossFunction);
     network.setOptimiser(&adam);
 
     network.logOverview();
 
+//    Input input{};
+//    Data data{1};
+//    data.get(0) = 0.3;
+//    check_gradients(network, input, data, 0);
+//    check_gradients(network, input, data, 1);
+//    check_gradients(network, input, data, 2);
 
     // ----------------------------------------------- VALIDATION ------------------------------------------------------------
 //    network.loadWeights(R"(C:\Users\Luecx\CLionProjects\Differentiation\resources\networks\koi5.13_relative_768-512-1\37_gd.net)");
-    network.loadWeights(network_path + "60.nn");
+//    network.loadWeights(network_path + "60.nn");
 //    quantitizeNetwork(network, network_path + "42.net");
 //    validateFens(network);
 //    computeScalars(network, positions);
@@ -223,7 +237,7 @@ int main() {
         std::cout << std::endl;
         std::cout << " train loss=" << lossSum / positions.size() << std::endl;
 
-        network.saveWeights(network_path + std::to_string(i) + "._lrdrop1.nn");
+//        network.saveWeights(network_path + std::to_string(i) + "._lrdrop1.nn");
         network.newEpoch();
     }
 //    network.loadWeights("test.nn");
