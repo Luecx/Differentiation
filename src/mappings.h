@@ -5,8 +5,8 @@
 #ifndef DIFFERENTIATION_MAPPINGS_H
 #define DIFFERENTIATION_MAPPINGS_H
 
-#include "Data.h"
-#include "Reader.h"
+#include "misc/Reader.h"
+#include "structures/Data.h"
 
 namespace dense_relative {
 
@@ -17,10 +17,13 @@ inline int  index(Square psq, Piece p, Square kingSquare, Color view) {
     PieceType pieceType      = p % 6;
     bool      kingSide       = (kingSquare & 7) > 3;
 
+    if (kingSide){
+        relativeSquare ^= 7;
+    }
+
     return relativeSquare
            + (pieceColor == view) * 64 * 6
-           + pieceType * 64
-           + kingSide * 64 * 6 * 2;
+           + pieceType * 64;
 
 }
 
@@ -63,9 +66,9 @@ inline void assign_input(Position& p, Input& input, Data& output){
         auto piece_index_black_pov = index(it.sq, it.piece, bKingSq, BLACK);
 
         if(it.activePlayer == WHITE){
-            piece_index_black_pov += 12 * 64 * 2;
+            piece_index_black_pov += 12 * 64;
         }else{
-            piece_index_white_pov += 12 * 64 * 2;
+            piece_index_white_pov += 12 * 64;
         }
 
         input.indices.push_back(piece_index_white_pov);

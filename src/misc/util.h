@@ -5,7 +5,9 @@
 #ifndef NNLIBRARY_UTIL_H
 #define NNLIBRARY_UTIL_H
 
-
+#include <cstdint>
+#include <cstdio>
+#include <immintrin.h>
 inline void print_256i_epi8(const __m256i &h){
     printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d \n",
            _mm256_extract_epi8(h,0),

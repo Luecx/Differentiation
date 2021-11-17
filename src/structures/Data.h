@@ -5,15 +5,16 @@
 #ifndef DIFFERENTIATION_DATA_H
 #define DIFFERENTIATION_DATA_H
 
+#include "../misc/config.h"
+#include "../misc/util.h"
+#include "Input.h"
+
+#include <cassert>
+#include <cstring>
 #include <immintrin.h>
-#include <ostream>
 #include <iomanip>
 #include <iostream>
-#include <cstring>
-#include <cassert>
-#include "Input.h"
-#include "util.h"
-#include "config.h"
+#include <ostream>
 
 #define ALIGNMENT 64
 #define PARALLEL_SIZE_32_BIT(x) (x - (x) %  8)

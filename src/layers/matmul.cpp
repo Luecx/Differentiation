@@ -2,7 +2,7 @@
 // Created by Luecx on 23.02.2021.
 //
 
-#include "Data.h"
+#include "../structures/Data.h"
 
 void matmul(
         const Data *weights,
@@ -277,6 +277,12 @@ void matmul(
     float* outputValues = target ->values;
     float* weightValues = weights->values;
 
+    // we can only do the chunks of 8 with avx instructions
+    // the rest must be done manually
+    int size = PARALLEL_SIZE_32_BIT(weights->M);
+
+    auto* ovalues = (__m256*) outputValues;
+
     for(uint32_t index:vector->indices){
 
 
@@ -284,21 +290,24 @@ void matmul(
         if(index >= weights->N + inputOffset) continue;
         index -= inputOffset;
 
-        // we can only do the chunks of 8 with avx instructions
-        // the rest must be done manually
-        int size = PARALLEL_SIZE_32_BIT(weights->M);
         // we assume that the output size of the very first layer is always a multiple of 8!
-        for(int n = 0; n < size; n+=8){
-            // get the gradients into the register aswell as the output which we want to write to
-            __m256 wvalues = _mm256_load_ps(&(weightValues[index * weights->M + n]));
-            __m256 ovalues = _mm256_load_ps(&(outputValues[                     n]));
-            // add the element-wise multiplication of the weights. For this, add the weights for the activated
-            // input neuron (output = 1) to the output
-            _mm256_store_ps(&outputValues[n],_mm256_add_ps(ovalues, wvalues));
+        // get the weights
+        auto* wvalues = (__m256*) &weightValues[index * weights->M];
+
+        for(int n = 0; n < size / 8; n++){
+            ovalues[n] = _mm256_add_ps(ovalues[n], wvalues[n]);
         }
-//        for(int n = size; n < weights->M; n++){
-//            outputValues[n] += weightValues[index * weights->M + n];
+//        for(int n = 0; n < size; n+=8){
+//            // get the gradients into the register aswell as the output which we want to write to
+//            __m256 wvalues = _mm256_load_ps(&(weightValues[index * weights->M + n]));
+//            __m256 ovalues = _mm256_load_ps(&(outputValues[                     n]));
+//            // add the element-wise multiplication of the weights. For this, add the weights for the activated
+//            // input neuron (output = 1) to the output
+//            _mm256_store_ps(&outputValues[n],_mm256_add_ps(ovalues, wvalues));
 //        }
+        for(int n = size; n < weights->M; n++){
+            outputValues[n] += weightValues[index * weights->M + n];
+        }
     }
 
 }
@@ -321,6 +330,8 @@ void matmul_backprop(
     float* weightsGrad = weights_grad->values;
     float* outputGrad  =  target_grad->values;
 
+    auto* out_grd = (__m256*) outputGrad;
+
     int size = PARALLEL_SIZE_32_BIT(weights_grad->M);
     // going through each index, applying the rules described above
     // Note that this assumes, as well as the forward step, that the output size is a multiple of 8
@@ -331,15 +342,12 @@ void matmul_backprop(
         if(index >= weights_grad->N + inputOffset) continue;
         index -= inputOffset;
 
-        // we can only do the chunks of 8 with avx instructions
-        // the rest must be done manually
-        for(int n = 0; n < size; n+=8){
-            // get the weight gradient which we want to increment as well as the output gradient
-            __m256 wgrad = _mm256_load_ps(&(weightsGrad[index * weights_grad->M + n]));
-            __m256 ograd = _mm256_load_ps(&( outputGrad[                          n]));
+        auto* wgt_grd = (__m256*) &weightsGrad[index * weights_grad->M];
 
-            _mm256_store_ps(&(weightsGrad[index * weights_grad->M + n]), _mm256_add_ps(wgrad, ograd));
+        for(int n = 0; n < size / 8; n++){
+            wgt_grd[n] = _mm256_add_ps(wgt_grd[n], out_grd[n]);
         }
+
         for(int n = size; n < weights_grad->M; n++){
             weightsGrad[index * weights_grad->M + n] += outputGrad[n];
         }

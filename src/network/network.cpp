@@ -4,7 +4,7 @@
 
 #include "network.h"
 
-#include "logging.h"
+#include "../misc/logging.h"
 #include "merge.h"
 
 #include <omp.h>
@@ -54,6 +54,10 @@ void Network::setLoss(Loss *loss) {
     this->loss = loss;
 }
 
+Loss* Network::getLoss() const { return loss; }
+
+Data* Network::getOutput(int threadID) const { return threadData[threadID]->output[layers.size() - 1]; }
+
 void Network::setOptimiser(Optimiser *optimiser) {
     this->optimiser = optimiser;
     this->optimiser->init(layers);
@@ -78,6 +82,10 @@ double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, 
     if(count < 0) count = inputs.size();
     if(count > inputs.size()) count = inputs.size();
 
+    // reset used weights
+    if(this->usedWeightColumns != nullptr){
+        this->usedWeightColumns->clear();
+    }
 
     // keeping track of the loss of this batch
     float batchLoss = 0;
@@ -87,6 +95,14 @@ double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, 
 
         // create a new vector for which we will request the input
         const int threadID = omp_get_thread_num();
+
+        // update the used weight columns if given
+        if(this->usedWeightColumns != nullptr){
+            int input_weight_cols = threadData[0]->weight_gradient[0]->getN();
+            for(auto h:inputs[i].indices){
+                this->usedWeightColumns->get(h % input_weight_cols) = 1;
+            }
+        }
 
         // forward pass
         layers[0]->apply(&inputs[i], threadData[threadID]);
@@ -109,9 +125,8 @@ double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, 
 
     }
 
-
     if(train) {
-        merge_gradients(threadData);
+        merge_gradients(threadData, this->usedWeightColumns);
         optimiser->apply(threadData[0], count);
     }
 
@@ -119,7 +134,7 @@ double Network::batch(std::vector <Input> &inputs, std::vector <Data> &targets, 
 }
 
 
-double Network::train(Input& input, Data& target){
+double Network::train(Input& input, Data& target, bool update){
 
     layers[0]->apply(&input, threadData[0]);
     for (int l = 1; l < layers.size(); l++) {
@@ -134,8 +149,9 @@ double Network::train(Input& input, Data& target){
         layers[l]->backprop(threadData[0]);
     }
     layers[0]->backprop(&input, threadData[0]);
-
-    optimiser->apply(threadData[0], 1);
+//
+//    if (update)
+//        optimiser->apply(threadData[0], 1);
     return error;
 }
 
@@ -145,7 +161,7 @@ Data* Network::evaluate(Input &input) {
     for(int l = 1; l < layers.size(); l++){
         layers[l]->apply(threadData[0]);
     }
-    return threadData[0]->output[layers.size()-1];
+    return getOutput();
 }
 
 Data* Network::evaluate(Data *input) {
@@ -155,6 +171,21 @@ Data* Network::evaluate(Data *input) {
     }
     return threadData[0]->output[layers.size()-1];
 }
+
+void Network::trackSparseInputsOverBatch(bool value) {
+
+    if(value == this->trackSparseInputs) return;
+
+    if(!this->trackSparseInputs){
+        // allocate the activated inputs
+        this->usedWeightColumns = new Data(layers[0]->getWeights()->N);
+    }else{
+        delete this->usedWeightColumns;
+        this->usedWeightColumns = nullptr;
+    }
+    this->trackSparseInputs = value;
+}
+
 
 ThreadData *Network::getThreadData(int thread) {
     return threadData[thread];

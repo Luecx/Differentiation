@@ -5,12 +5,12 @@
 #ifndef DIFFERENTIATION_DENSELAYER_H
 #define DIFFERENTIATION_DENSELAYER_H
 
-#include "Function.h"
-#include <cmath>
+#include "../misc/config.h"
+#include "../network/ThreadData.h"
 #include "Layer.h"
-#include "config.h"
 #include "matmul.h"
 
+#include <cmath>
 
 template<int I, int O, typename F>
 class DenseLayer : public LayerInterface{
