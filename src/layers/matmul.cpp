@@ -2,7 +2,7 @@
 // Created by Luecx on 23.02.2021.
 //
 
-#include "Data.h"
+#include "../structures/Data.h"
 
 void matmul(
         const Data *weights,
@@ -104,7 +104,6 @@ void matmul_backprop(
     assert(target_grad->M == weights->M);
     assert(weights->N % 8 == 0);
 
-
     vector_grad->clear();
 
     auto* wgt             = (__m256*)(weights           ->values);
@@ -197,7 +196,7 @@ void matmul(
 //            // add the element-wise multiplication of the weights. For this, add the weights for the activated
 //            // input neuron (output = 1) to the output
 //            _mm256_store_ps(&outputValues[n],_mm256_add_ps(ovalues, wvalues));
-//        }
+//        }+
         for(int n = size; n < weights->M; n++){
             outputValues[n] += weightValues[index * weights->M + n];
         }
@@ -229,7 +228,7 @@ void matmul_backprop(
 
     // experimental: store the ograds here
     auto ograds = (__m256*) (outputGrad);
-    for(uint32_t &index:vector->indices){
+    for(uint32_t index:vector->indices){
 
         // get the weight gradients considered
         auto wgrads = (__m256*) (&weightsGrad[index * weights_grad->M]);
@@ -279,7 +278,6 @@ void matmul(
 
     for(uint32_t index:vector->indices){
 
-
         if(index < inputOffset) continue;
         if(index >= weights->N + inputOffset) continue;
         index -= inputOffset;
@@ -308,6 +306,7 @@ void matmul_backprop(
         Data *weights_grad,
         Data *target_grad,
         int inputOffset) {
+
     assert(target_grad->M == weights_grad->M);
     assert(weights_grad->N % 8 == 0);
 
@@ -321,28 +320,30 @@ void matmul_backprop(
     float* weightsGrad = weights_grad->values;
     float* outputGrad  =  target_grad->values;
 
+    auto out_grad = (__m256*) (outputGrad);
+
     int size = PARALLEL_SIZE_32_BIT(weights_grad->M);
     // going through each index, applying the rules described above
     // Note that this assumes, as well as the forward step, that the output size is a multiple of 8
     // Otherwise a SIGSEGV will occur as we try to load 256 bit into a register to which we dont have access.
-    for(uint32_t &index:vector->indices){
+    for(uint32_t index:vector->indices){
 
         if(index < inputOffset) continue;
         if(index >= weights_grad->N + inputOffset) continue;
         index -= inputOffset;
 
-        // we can only do the chunks of 8 with avx instructions
-        // the rest must be done manually
-        for(int n = 0; n < size; n+=8){
-            // get the weight gradient which we want to increment as well as the output gradient
-            __m256 wgrad = _mm256_load_ps(&(weightsGrad[index * weights_grad->M + n]));
-            __m256 ograd = _mm256_load_ps(&( outputGrad[                          n]));
+        // get the weight gradients considered
+        auto wgt_grad = (__m256*) (&weightsGrad[index * weights_grad->M]);
 
-            _mm256_store_ps(&(weightsGrad[index * weights_grad->M + n]), _mm256_add_ps(wgrad, ograd));
+        // efficient looping
+        for(int n = 0; n < size / 8; n++){
+            wgt_grad[n] = _mm256_add_ps(out_grad[n], wgt_grad[n]);
         }
-//        for(int n = size; n < weights_grad->M; n++){
-//            weightsGrad[index * weights_grad->M + n] += outputGrad[n];
-//        }
+
+        // do the remaining stuff
+        for(int n = size; n < weights_grad->M; n++){
+            weightsGrad[index * weights_grad->M + n] += outputGrad[n];
+        }
     }
 
 }

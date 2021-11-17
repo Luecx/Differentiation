@@ -5,8 +5,8 @@
 #ifndef DIFFERENTIATION_LAYER_H
 #define DIFFERENTIATION_LAYER_H
 
-#include "Data.h"
-#include "Function.h"
+#include "../activations/Activation.h"
+#include "../structures/Data.h"
 
 class ThreadData;
 
@@ -34,29 +34,7 @@ public:
     virtual void apply(Input *input, ThreadData* td) = 0;
     virtual void backprop(Input *input,ThreadData* td) = 0;
 
-    void assignID(int id){
-        layerID = id;
-    }
+    void assignID(int id);
 };
-
-
-class ThreadData {
-private:
-
-public:
-
-    Data** output;
-    Data** output_gradient;
-    Data** weight_gradient;
-    Data**   bias_gradient;
-
-    const int threadID;
-    const int count;
-
-    ThreadData(int ID, std::vector<LayerInterface*> layers);
-
-    virtual ~ThreadData();
-};
-
 
 #endif //DIFFERENTIATION_LAYER_H

@@ -5,15 +5,16 @@
 #ifndef DIFFERENTIATION_DATA_H
 #define DIFFERENTIATION_DATA_H
 
+#include "../misc/config.h"
+#include "../misc/util.h"
+#include "Input.h"
+
+#include <cassert>
+#include <cstring>
 #include <immintrin.h>
-#include <ostream>
 #include <iomanip>
 #include <iostream>
-#include <cstring>
-#include <cassert>
-#include "Input.h"
-#include "util.h"
-#include "config.h"
+#include <ostream>
 
 #define ALIGNMENT 64
 #define PARALLEL_SIZE_32_BIT(x) (x - (x) %  8)
@@ -46,19 +47,20 @@ public:
 
     [[nodiscard]] float  min() const;
     [[nodiscard]] float  max() const;
+    [[nodiscard]] float  sum() const;
     void   sort() const;
 
     [[nodiscard]] int getM() const;
     [[nodiscard]] int getN() const;
     [[nodiscard]] int size() const;
 
-    void   clear() const;
+    void   clear();
+    void   clamp(float lower, float upper);
     void   randomise(float lower=0, float upper=1) const;
     void   randomiseGaussian(float mean, float deviation) const;
     void   randomiseKieren() const;
 
     void   scale(float scalar) const;
-
     void   add(Data *other);
     void   add(Data *other, float scalar);
     void   sub(Data *other);

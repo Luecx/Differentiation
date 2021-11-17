@@ -5,33 +5,28 @@
 #ifndef DIFFERENTIATION_DENSELAYER_H
 #define DIFFERENTIATION_DENSELAYER_H
 
-#include "Function.h"
-#include <cmath>
+#include "../activations/Activation.h"
+#include "../misc/config.h"
 #include "Layer.h"
-#include "config.h"
+#include "../network/ThreadData.h"
+#include "WeightClamp.h"
 #include "matmul.h"
 
+#include <cmath>
 
-template<int I, int O, typename F>
+template<int I, int O, typename Function>
 class DenseLayer : public LayerInterface{
 public:
     Data weights                   {O,I};
     Data bias                      {O};
-    F    f                         {};
+    Function f                     {};
+    WeightClamp clamping           {};
 
-    DenseLayer() {
-//        weights.randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
-//        bias   .randomise(-1.0 / sqrt(I), 1.0 / sqrt(I));
-
-//
-
+    DenseLayer(WeightClamp clamp=WeightClamp{}) {
         weights.randomiseGaussian(0, sqrt(2.0 / I));
-//        bias   .randomiseGaussian(0, 0);
-//        weights.randomiseKieren();
         bias.randomiseGaussian(0,0);
 
-//        weights.randomise(0, 1.0 / sqrt(I));
-//        bias   .randomise(0, 1.0 / sqrt(I));
+        clamping = clamp;
     }
 
     void apply(ThreadData* td) override{
@@ -104,11 +99,11 @@ public:
     }
 
     void backprop(
-        Data   *in,
-        Data   *output,
-        Data   *out_grad,
-        Data   *weights_grad,
-        Data   *bias_grad){
+            Data   *in,
+            Data   *output,
+            Data   *out_grad,
+            Data   *weights_grad,
+            Data   *bias_grad){
         f.backprop(output, out_grad,out_grad);
         bias_grad->add(out_grad);
         matmul_backprop(&weights, in, weights_grad, out_grad);

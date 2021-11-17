@@ -72,6 +72,14 @@ float Data::max() const {
     }
     return m;
 }
+float Data::sum() const {
+
+    float m = 0;
+    for (int i = 0; i < size(); i++) {
+        m += values[i];
+    }
+    return m;
+}
 
 void Data::sort() const { std::sort(values, values + size(), std::greater<float>()); }
 
@@ -81,10 +89,17 @@ int  Data::getN() const { return N; }
 
 int  Data::size() const { return M * N; }
 
-void Data::clear() const {
+void Data::clear() {
     if (values != nullptr)
         std::memset(values, 0, sizeof(float) * M * N);
 }
+
+void Data::clamp(float lower, float upper) {
+    for (int i = 0; i < this->size(); i++) {
+        values[i] = std::clamp(values[i], lower, upper);
+    }
+};
+
 
 void Data::randomise(float lower, float upper) const {
     for (int i = 0; i < M * N; i++) {
@@ -170,17 +185,17 @@ Data   Data::newInstance() const{
 std::ostream& operator<<(std::ostream& os, const Data& data) {
 
     if (data.N != 1) {
-        os << std::fixed << std::setprecision(5);
+        os << std::fixed << std::setprecision(4);
         for (int i = 0; i < data.M; i++) {
             for (int n = 0; n < data.N; n++) {
-                os << std::setw(11) << (double) data(i, n);
+                os << std::setw(16) << (double) data(i, n);
             }
             os << "\n";
         }
     } else {
         os << "(transposed) ";
         for (int n = 0; n < data.M; n++) {
-            os << std::setw(11) << (double) data(n);
+            os << std::setw(16) << (double) data(n);
         }
     }
     return os;

@@ -53,13 +53,11 @@ public:
         f.backprop(im1[td->threadID], im1_g[td->threadID],im1_g[td->threadID]);
         f.backprop(im2[td->threadID], im2_g[td->threadID],im2_g[td->threadID]);
 
-
         *td->bias_gradient[layerID] =   *im1_g[td->threadID];
          td->bias_gradient[layerID]->add(im2_g[td->threadID]);
 
         matmul_backprop(in1, td->weight_gradient[layerID], im1_g[td->threadID], 0);
         matmul_backprop(in1, td->weight_gradient[layerID], im2_g[td->threadID], I);
-
     }
 
 
@@ -77,7 +75,7 @@ public:
         return O*2;
     }
     int getInputSize() override {
-        return I;
+        return I*2;
     }
     Data *newOutputInstance() override {
         return new Data(O*2);
