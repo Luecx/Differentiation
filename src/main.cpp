@@ -1,6 +1,7 @@
 
 #include "Data.h"
 #include "DenseLayer.h"
+#include "DuplicateDenseLayer.h"
 #include "Function.h"
 #include "Input.h"
 #include "Reader.h"
@@ -14,14 +15,14 @@
 
 constexpr int BATCH_SIZE   = 1024 * 16;
 
-constexpr int IN_SIZE      = 12 * 64;
+constexpr int IN_SIZE      = 12 * 64 * 2;
 constexpr int HIDDEN1_SIZE = 512;
-constexpr int OUTPUT_SIZE  = 2;
+constexpr int OUTPUT_SIZE  = 1;
 
 using namespace dense_relative;
 
-#define INPUT_WEIGHT_MULTIPLIER  (128)
-#define HIDDEN_WEIGHT_MULTIPLIER (64)
+#define INPUT_WEIGHT_MULTIPLIER  (64)
+#define HIDDEN_WEIGHT_MULTIPLIER (512)
 
 void computeScalars(Network& network, std::vector<Position>& positions) {
     Input inp {};
@@ -68,7 +69,17 @@ void validateFens(Network& network) {
         Data* h = network.evaluate(inp);
 //        std::cout << network.getThreadData(0)->output[0][0];
         std::cout << s << std::endl;
+        for(int i = 0; i < 16; i++){
+            std::cout << network.getThreadData(0)->output[0]->get(i) * INPUT_WEIGHT_MULTIPLIER << "  ";
+        }
+        std::cout << std::endl;
+        for(int i = 0; i < 16; i++){
+            std::cout << network.getThreadData(0)->output[0]->get(i + HIDDEN1_SIZE) * INPUT_WEIGHT_MULTIPLIER<< "  ";
+        }
+        std::cout << std::endl;
+
         std::cout << *h << std::endl;
+        exit(-1);
     }
 }
 
@@ -123,17 +134,20 @@ int main() {
 
     initLookUpTable();
 
-    const std::string     path         = R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Differentiation\resources\networks\koi6.24_relative_768-512-2\)";
-    const std::string     data_path    = path + "data\\";
-    const std::string     network_path = path + "networks\\";
+    const std::string     path         = "../runs/king_relative_256/";
+    const std::string     data_path    = path + "data/";
+    const std::string     network_path = path + "networks/";
 
     // ----------------------------------------------- LOADING DATA ------------------------------------------------------------
 
 
-//    logging::open(path + "log.txt");
+    logging::open(path + "log1.txt");
 
     std::vector<Position> positions {};
-    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\netdev\v6.24_generation\finn1.bin)", &positions, 10);
+    read_positions_bin("../../Koivisto/resources/all.bin", &positions);
+//    for(int i = 0; i < 96; i++){
+//        read_positions_bin("_" + std::to_string(i), &positions);
+//    }
 //    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\netdev\v6.24_generation\kim1.bin)", &positions);
 //    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\netdev\v6.24_generation\kim2.bin)", &positions);
 //    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\netdev\v6.24_generation\kim3.bin)", &positions);
@@ -156,8 +170,8 @@ int main() {
 
     // ----------------------------------------------- NETWORK STRUCTURE ------------------------------------------------------------
 
-    auto                         l1 = new DenseLayer<IN_SIZE, HIDDEN1_SIZE, ReLU> {};
-    auto                         l2 = new DenseLayer<HIDDEN1_SIZE, OUTPUT_SIZE, Linear> {};
+    auto                         l1 = new DuplicateDenseLayer<IN_SIZE, HIDDEN1_SIZE, ReLU> {};
+    auto                         l2 = new DenseLayer         <HIDDEN1_SIZE * 2, OUTPUT_SIZE, Sigmoid> {};
     std::vector<LayerInterface*> layers {};
     layers.push_back(l1);
     layers.push_back(l2);
@@ -165,6 +179,7 @@ int main() {
     Network network {layers};
     MSE     lossFunction {};
     Adam    adam {};
+    adam.alpha = 0.001;
     network.setLoss(&lossFunction);
     network.setOptimiser(&adam);
 
@@ -173,44 +188,48 @@ int main() {
 
     // ----------------------------------------------- VALIDATION ------------------------------------------------------------
 //    network.loadWeights(R"(C:\Users\Luecx\CLionProjects\Differentiation\resources\networks\koi5.13_relative_768-512-1\37_gd.net)");
-    network.loadWeights(network_path + "42.nn");
-    quantitizeNetwork(network, network_path + "42.net");
-    validateFens(network);
-    computeScalars(network, positions);
+    network.loadWeights(network_path + "60.nn");
+//    quantitizeNetwork(network, network_path + "42.net");
+//    validateFens(network);
+//    computeScalars(network, positions);
 //    exit(-1);
     // ----------------------------------------------- TRAINING ------------------------------------------------------------
-//    for (int i = 1; i < 5000; i++) {
+    for (int i = 1; i < 20000; i++) {
 //        network.loadWeights(network_path + std::to_string(i) + ".nn");
-//
-//        int   batch_count = ceil(positions.size() / (float) BATCH_SIZE);
-//        float lossSum     = 0;
-//        auto  start       = std::chrono::system_clock::now();
-//
-//        for (int batch = 0; batch < batch_count; batch++) {
-//            // fill the inputs and outputs
-//            int   batchsize = assign_inputs_batch(positions, batch * BATCH_SIZE, inputs, targets);
-//            float loss      = network.batch(inputs, targets, batchsize, true);
-//
-//            lossSum += loss * batchsize;
-//            auto                          end  = std::chrono::system_clock::now();
-//            std::chrono::duration<double> diff = end - start;
-//            printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f speed=%-7d eps", i, batch, batch_count, loss, (int) ((batch * BATCH_SIZE + batchsize) / diff.count()));
-//            std::cout << std::flush;
-//        }
-//
-//        std::stringstream ss{};
-//        ss
-//                 << "epoch: " << std::left << std::setw(10) << i
-//                 << "loss: "  << std::left << std::setw(10) << lossSum / positions.size();
-//        logging::write(ss.str());
-//
-//
-//        std::cout << std::endl;
-//        std::cout << " train loss=" << lossSum / positions.size() << std::endl;
-//
-//        network.saveWeights(network_path + std::to_string(i) + ".nn");
-//        network.newEpoch();
-//    }
+
+        int   batch_count = ceil(positions.size() / (float) BATCH_SIZE);
+        float lossSum     = 0;
+        auto  start       = std::chrono::system_clock::now();
+
+        for (int batch = 0; batch < batch_count; batch++) {
+            // fill the inputs and outputs
+            int   batchsize = assign_inputs_batch(positions, batch * BATCH_SIZE, inputs, targets);
+            float loss      = network.batch(inputs, targets, batchsize, true);
+
+            lossSum += loss * batchsize;
+            auto                          end  = std::chrono::system_clock::now();
+            std::chrono::duration<double> diff = end - start;
+            printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f speed=%-7d eps", i, batch, batch_count, loss, (int) ((batch * BATCH_SIZE + batchsize) / diff.count()));
+            std::cout << std::flush;
+        }
+
+        std::stringstream ss{};
+        ss
+                 << "epoch: " << std::left << std::setw(10) << i
+                 << "loss: "  << std::left << std::setw(10) << lossSum / positions.size();
+        logging::write(ss.str());
+
+
+        std::cout << std::endl;
+        std::cout << " train loss=" << lossSum / positions.size() << std::endl;
+
+        network.saveWeights(network_path + std::to_string(i) + "._lrdrop1.nn");
+        network.newEpoch();
+    }
+//    network.loadWeights("test.nn");
+//    quantitizeNetwork(network, "test.net");
+//    validateFens(network);
+//    computeScalars(network, positions);
 
     return 0;
 }

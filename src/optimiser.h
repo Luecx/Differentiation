@@ -59,7 +59,7 @@ private:
 
 public:
     double alpha = 0.01;
-    double beta1 = 0.9;
+    double beta1 = 0.99;
     double beta2 = 0.999;
     double eps   = 1e-8;
 
@@ -149,7 +149,8 @@ struct Gd : Optimiser{
      * Destructor to deallocate the moment estimates.
      */
     virtual ~Gd();
-
+    
+    void logOverview() override;	
 };
 
 #endif //DIFFERENTIATION_OPTIMISER_H

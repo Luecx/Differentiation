@@ -340,9 +340,9 @@ void matmul_backprop(
 
             _mm256_store_ps(&(weightsGrad[index * weights_grad->M + n]), _mm256_add_ps(wgrad, ograd));
         }
-//        for(int n = size; n < weights_grad->M; n++){
-//            weightsGrad[index * weights_grad->M + n] += outputGrad[n];
-//        }
+        for(int n = size; n < weights_grad->M; n++){
+            weightsGrad[index * weights_grad->M + n] += outputGrad[n];
+        }
     }
 
 }
