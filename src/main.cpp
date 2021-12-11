@@ -1,11 +1,12 @@
 
 #include "activations/ReLU.h"
 #include "activations/Sigmoid.h"
+#include "dataset/batchloader.h"
+#include "dataset/reader.h"
 #include "layers/DenseLayer.h"
 #include "layers/DuplicateDenseLayer.h"
 #include "loss/MSE.h"
 #include "mappings.h"
-#include "misc/Reader.h"
 #include "network/network.h"
 #include "optimiser/Adam.h"
 #include "optimiser/optimiser.h"
@@ -18,10 +19,10 @@
 #include <random>
 
 constexpr int BATCH_SIZE   = 1024 * 16;
+constexpr int EPOCH_SIZE   = 1024 * 16;
 
 constexpr int IN_SIZE      = 12 * 64;
 constexpr int HIDDEN1_SIZE = 512;
-constexpr int HIDDEN2_SIZE = 32;
 constexpr int OUTPUT_SIZE  = 1;
 
 using namespace dense_relative;
@@ -68,7 +69,7 @@ void validateFens(Network& network) {
 
     for (std::string& s : strings) {
         Position p {};
-        p.set(s);
+//        p.set(s);
         assign_input(p, inp, output);
 
         Data* h = network.evaluate(inp);
@@ -137,8 +138,6 @@ void quantitizeNetwork(Network& network, const std::string& output) {
 
 int main() {
 
-    initLookUpTable();
-
     const std::string     path         = "../runs/king_relative_256/";
     const std::string     data_path    = path + "data/";
     const std::string     network_path = path + "networks/";
@@ -146,23 +145,10 @@ int main() {
     // ----------------------------------------------- LOADING DATA ------------------------------------------------------------
 
 
-//    logging::open(path + "log1.txt");
+    std::vector<std::string> files {};
 
-    std::vector<Position> positions {};
-//    read_positions_bin("../../Koivisto/resources/all.bin", &positions);
-//    for(int i = 0; i < 96; i++){
-//        read_positions_bin("_" + std::to_string(i), &positions);
-//    }
-    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\netdev\v6.24_generation\kim1.bin)", &positions,1);
-//    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\netdev\v6.24_generation\kim2.bin)", &positions);
-//    read_positions_bin(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\netdev\v6.24_generation\kim3.bin)", &positions);
-
-    // ----------------------------------------------- DATA SHUFFLING ----------------------------------------------------------
-
-    auto rng = std::default_random_engine {};
-    std::shuffle(std::begin(positions), std::end(positions), rng);
-
-
+    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_0.txt.bin)");
+    BatchLoader batch_loader{files, BATCH_SIZE, 128};
     // ----------------------------------------------- BATCH PREPARATION ------------------------------------------------------------
 
     // creating buffers where inputs and targets will be stored for a batch
@@ -174,15 +160,14 @@ int main() {
         targets.emplace_back(Data {OUTPUT_SIZE});
     }
 
+
     // ----------------------------------------------- NETWORK STRUCTURE ------------------------------------------------------------
 
     auto                         l1 = new DuplicateDenseLayer<IN_SIZE, HIDDEN1_SIZE, ReLU> {64};
-    auto                         l2 = new DenseLayer         <HIDDEN1_SIZE * 2, HIDDEN2_SIZE, ReLU> {};
-    auto                         l3 = new DenseLayer         <HIDDEN2_SIZE, OUTPUT_SIZE, Sigmoid> {};
+    auto                         l2 = new DenseLayer         <HIDDEN1_SIZE * 2, 1, Sigmoid> {};
     std::vector<LayerInterface*> layers {};
     layers.push_back(l1);
     layers.push_back(l2);
-    layers.push_back(l3);
 
     Network network {layers};
     MSE     lossFunction {};
@@ -208,38 +193,65 @@ int main() {
 //    computeScalars(network, positions);
 //    exit(-1);
     // ----------------------------------------------- TRAINING ------------------------------------------------------------
-    for (int i = 1; i < 20000; i++) {
-//        network.loadWeights(network_path + std::to_string(i) + ".nn");
+//
+    for(int epoch = 0; epoch < 1; epoch ++){
 
-        int   batch_count = ceil(positions.size() / (float) BATCH_SIZE);
         float lossSum     = 0;
         auto  start       = std::chrono::system_clock::now();
 
-        for (int batch = 0; batch < batch_count; batch++) {
+        for(int batch = 0; batch < EPOCH_SIZE; batch++){
+            DataSet* position  = batch_loader.next();
+
             // fill the inputs and outputs
-            int   batchsize = assign_inputs_batch(positions, batch * BATCH_SIZE, inputs, targets);
-            float loss      = network.batch(inputs, targets, batchsize, true);
+            int      batchsize = assign_inputs_batch(*position, inputs, targets);
+            float    loss      = network.batch(inputs, targets, batchsize, true);
 
             lossSum += loss * batchsize;
             auto                          end  = std::chrono::system_clock::now();
             std::chrono::duration<double> diff = end - start;
-            printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f speed=%-7d eps", i, batch, batch_count, loss, (int) ((batch * BATCH_SIZE + batchsize) / diff.count()));
+            printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f avg. loss=%-16.12f speed=%-7d eps",
+                   epoch,
+                   batch,
+                   EPOCH_SIZE,
+                   loss,
+                   lossSum / batch / batchsize,
+                   (int) ((batch * BATCH_SIZE + batchsize) / diff.count()));
             std::cout << std::flush;
         }
-
-        std::stringstream ss{};
-        ss
-                 << "epoch: " << std::left << std::setw(10) << i
-                 << "loss: "  << std::left << std::setw(10) << lossSum / positions.size();
-        logging::write(ss.str());
-
-
-        std::cout << std::endl;
-        std::cout << " train loss=" << lossSum / positions.size() << std::endl;
-
-//        network.saveWeights(network_path + std::to_string(i) + "._lrdrop1.nn");
-        network.newEpoch();
     }
+
+//    for (int i = 1; i < 20000; i++) {
+////        network.loadWeights(network_path + std::to_string(i) + ".nn");
+//
+//        int   batch_count = ceil(positions.size() / (float) BATCH_SIZE);
+//        float lossSum     = 0;
+//        auto  start       = std::chrono::system_clock::now();
+//
+//        for (int batch = 0; batch < batch_count; batch++) {
+//            // fill the inputs and outputs
+//            int   batchsize = assign_inputs_batch(positions, batch * BATCH_SIZE, inputs, targets);
+//            float loss      = network.batch(inputs, targets, batchsize, true);
+//
+//            lossSum += loss * batchsize;
+//            auto                          end  = std::chrono::system_clock::now();
+//            std::chrono::duration<double> diff = end - start;
+//            printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f speed=%-7d eps", i, batch, batch_count, loss, (int) ((batch * BATCH_SIZE + batchsize) / diff.count()));
+//            std::cout << std::flush;
+//        }
+//
+//        std::stringstream ss{};
+//        ss
+//                 << "epoch: " << std::left << std::setw(10) << i
+//                 << "loss: "  << std::left << std::setw(10) << lossSum / positions.size();
+//        logging::write(ss.str());
+//
+//
+//        std::cout << std::endl;
+//        std::cout << " train loss=" << lossSum / positions.size() << std::endl;
+//
+////        network.saveWeights(network_path + std::to_string(i) + "._lrdrop1.nn");
+//        network.newEpoch();
+//    }
 //    network.loadWeights("test.nn");
 //    quantitizeNetwork(network, "test.net");
 //    validateFens(network);
