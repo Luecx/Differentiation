@@ -10,6 +10,7 @@
 #include "dataset.h"
 
 #include <fstream>
+#include <random>
 #include <utility>
 
 struct BatchLoader {
@@ -99,6 +100,8 @@ struct BatchLoader {
             file.read(reinterpret_cast<char*>(&data_buffer->positions[offset]),
                       sizeof(Position) * filling);
 
+            std::shuffle(data_buffer->positions.begin(), data_buffer->positions.end(), std::mt19937(std::random_device()()));
+
 //            std::cout << "read  " << file.gcount() << " bytes" << std::endl;
 //            std::cout << "tried " << sizeof(Position) * filling << " bytes" << std::endl;
 //            std::cout << positions_left_in_file << std::endl;
@@ -133,6 +136,7 @@ struct BatchLoader {
         std::memcpy(&batch.positions[0],
                     &data->positions[current_batch_index * batch_size],
                     sizeof(Position) * batch_size);
+
         current_batch_index ++;
         return &batch;
     }
