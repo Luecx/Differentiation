@@ -35,8 +35,6 @@ add_executable(Differentiation
         src/misc/config.h
         src/misc/logging.h                  src/misc/logging.cpp
 
-        src/mappings.cpp src/mappings.h
-
         src/position/piece.h
         src/position/position.h
         src/position/bitboard.h
@@ -54,10 +52,10 @@ add_executable(Differentiation
         src/dataset/batchloader.h)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")

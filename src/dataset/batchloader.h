@@ -67,6 +67,7 @@ struct BatchLoader {
             current_file_index %= files.size();
             file = std::ifstream {files[current_file_index], std::ios::binary};
             if (!file.is_open()) {
+                std::cout << "cannot open " << files[current_file_index] << std::endl;
                 file.close();
             }
         }
