@@ -9,7 +9,9 @@
 #include "defs.h"
 
 #include <iostream>
+#ifndef __ARM__
 #include <x86intrin.h>
+#endif
 
 /**
  * toggles the bit
@@ -77,7 +79,36 @@ inline Square bitscanReverse(BB bb) {
  * @return
  */
 inline Square bitscanForwardIndex(BB bb, Square n) {
+
+#ifdef __ARM__
+    https://stackoverflow.com/questions/7669057/find-nth-set-bit-in-an-int
+    n += 1;
+    int shifted = 0; // running total
+    int nBits;       // value for this iteration
+
+    // handle no solution
+    if (n > __builtin_popcount(bb)) return 64;
+
+    while (n > 7)
+    {
+        // for large n shift out lower n-1 bits from v.
+        nBits = n-1;
+        n -= __builtin_popcount(bb & ((1<<nBits)-1));
+        bb >>= nBits;
+        shifted += nBits;
+    }
+
+    BB next;
+    // n is now small, clear out n-1 bits and return the next bit
+    // v&(v-1): a well known software trick to remove the lowest set bit.
+    while (next = bb&(bb-1), --n)
+    {
+        bb = next;
+    }
+    return bitscanForward((bb ^ next) << shifted);
+#else
     return __builtin_ctzll(_pdep_u64(1ULL << n, bb));
+#endif
 }
 
 

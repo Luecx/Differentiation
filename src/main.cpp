@@ -20,19 +20,17 @@
 
 
 
-int batch_size       = 1<<14;
+int batch_size        = 1<<14;
 int batches_in_memory = 256;
 int input_size        = 768;
 int batch_memory      = batch_size * input_size;
 std::vector<std::string> sources{};
 BatchLoader* batch_loader;
 
-
 float*   batch_stm    = nullptr;
 float*   batch_nstm   = nullptr;
 float*   cp_values    = nullptr;
 float*   wdl_values   = nullptr;
-
 
 int  mappingIndex(Square psq, Piece p, Square kingSquare, Color view) {
     Color     pieceColor     = p >= BLACK_PAWN ? BLACK : WHITE;
@@ -139,12 +137,17 @@ float* wdlMemory() {
 
 int main() {
 
-    initBatches(16348, 16);
-    addSource(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_0.txt.bin)");
+    BB bb = 1231823718;
+    printBitboard(bb);
+    std::cout << (int)bitscanForwardIndex(bb, 3);
 
-    begin();
 
-    next();
+//    initBatches(16348, 16);
+//    addSource(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_0.txt.bin)");
+//
+//    begin();
+//
+//    next();
 
 //    end();
 
