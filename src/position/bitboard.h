@@ -73,6 +73,7 @@ inline Square bitscanReverse(BB bb) {
     return __builtin_clzll(bb) ^ 63;
 }
 
+
 /**
  * returns the index of the nth set bit, starting at the lsb
  * @param bb
@@ -83,17 +84,17 @@ inline Square bitscanForwardIndex(BB bb, Square n) {
 #ifdef __ARM__
     https://stackoverflow.com/questions/7669057/find-nth-set-bit-in-an-int
     n += 1;
-    int shifted = 0; // running total
-    int nBits;       // value for this iteration
+    BB shifted = 0; // running total
+    BB nBits;       // value for this iteration
 
     // handle no solution
-    if (n > __builtin_popcount(bb)) return 64;
+    if (n > bitCount(bb)) return 64;
 
     while (n > 7)
     {
         // for large n shift out lower n-1 bits from v.
         nBits = n-1;
-        n -= __builtin_popcount(bb & ((1<<nBits)-1));
+        n -= bitCount(bb & ((1<<nBits)-1));
         bb >>= nBits;
         shifted += nBits;
     }

@@ -22,7 +22,7 @@
 
 int batch_size        = 1<<14;
 int batches_in_memory = 256;
-int input_size        = 768;
+int input_size        = 768 * 2;
 int batch_memory      = batch_size * input_size;
 std::vector<std::string> sources{};
 BatchLoader* batch_loader;
@@ -33,8 +33,10 @@ float*   cp_values    = nullptr;
 float*   wdl_values   = nullptr;
 
 int  mappingIndex(Square psq, Piece p, Square kingSquare, Color view) {
+    std::cout << "# " << (int)psq << " " << (int)p << " " << (int)kingSquare << " " << (int)view << std::endl;
+
     Color     pieceColor     = p >= BLACK_PAWN ? BLACK : WHITE;
-    PieceType pieceType      = p % 6;
+    PieceType pieceType      = getPieceType(p);
     bool      kingSide       = (kingSquare & 7) > 3;
 
     constexpr int pieceTypeFactor  = 64;
@@ -67,10 +69,14 @@ void mapPosition(Position& p, float* stm, float* nstm, float* wdl, float* cp) {
     Square wKingSq = p.getKingSquare<WHITE>();
     Square bKingSq = p.getKingSquare<BLACK>();
 
+    std::cout << writeFen(p) << std::endl;
+
     // read all the pieces
     for(int i = 0; i < p.getPieceCount(); i++){
         auto piece_index_white_pov = mappingIndex(p.getSquare(i), p.m_pieces.getPiece(i), wKingSq, WHITE);
         auto piece_index_black_pov = mappingIndex(p.getSquare(i), p.m_pieces.getPiece(i), bKingSq, BLACK);
+
+        std::cout << piece_index_white_pov << "  " << piece_index_black_pov << std::endl;
 
         if (p.m_meta.getActivePlayer() == WHITE) {
             stm [piece_index_white_pov] = 1;
@@ -137,19 +143,19 @@ float* wdlMemory() {
 
 int main() {
 
-    BB bb = 1231823718;
-    printBitboard(bb);
-    std::cout << (int)bitscanForwardIndex(bb, 3);
+//    BB bb = 1231823718;
+//    printBitboard(bb);
+//    std::cout << (int)bitscanForwardIndex(bb, 3);
 
 
-//    initBatches(16348, 16);
-//    addSource(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_0.txt.bin)");
-//
-//    begin();
-//
-//    next();
+    initBatches(1, 1);
+    addSource(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_0.txt.bin)");
 
-//    end();
+    begin();
+
+    next();
+
+    end();
 
     return 0;
 }
