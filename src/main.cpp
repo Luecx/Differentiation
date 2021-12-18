@@ -7,6 +7,7 @@
 #include "layers/DuplicateDenseLayer.h"
 #include "loss/MSE.h"
 #include "mappings.h"
+#include "misc/csv.h"
 #include "network/network.h"
 #include "optimiser/Adam.h"
 #include "optimiser/optimiser.h"
@@ -136,19 +137,30 @@ void quantitizeNetwork(Network& network, const std::string& output) {
     fclose(f);
 }
 
-int main() {
+void commandLine(int argc, char* argv[]){
+    
+}
+
+int main(int argc, char* argv[]) {
 
     const std::string     path         = "../runs/king_relative_256/";
     const std::string     data_path    = path + "data/";
     const std::string     network_path = path + "networks/";
 
     // ----------------------------------------------- LOADING DATA ------------------------------------------------------------
-
-
     std::vector<std::string> files {};
-
     files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_0.txt.bin)");
-    BatchLoader batch_loader{files, BATCH_SIZE, 128};
+    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_1.txt.bin)");
+    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_2.txt.bin)");
+    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_3.txt.bin)");
+    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_4.txt.bin)");
+    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_5.txt.bin)");
+    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_6.txt.bin)");
+    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_7.txt.bin)");
+    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_8.txt.bin)");
+    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_9.txt.bin)");
+
+    BatchLoader batch_loader{files, BATCH_SIZE, 256};
     // ----------------------------------------------- BATCH PREPARATION ------------------------------------------------------------
 
     // creating buffers where inputs and targets will be stored for a batch
@@ -160,6 +172,9 @@ int main() {
         targets.emplace_back(Data {OUTPUT_SIZE});
     }
 
+    // ------------------------------------------------- CSV OUTPUT ----------------------------------------------------------------
+    CSVWriter csv_writer{"test.csv"};
+    csv_writer.write("epoch", "batch", "loss", "epoch loss", "exponential moving average loss");
 
     // ----------------------------------------------- NETWORK STRUCTURE ------------------------------------------------------------
 
@@ -178,13 +193,6 @@ int main() {
 
     network.logOverview();
 
-//    Input input{};
-//    Data data{1};
-//    data.get(0) = 0.3;
-//    check_gradients(network, input, data, 0);
-//    check_gradients(network, input, data, 1);
-//    check_gradients(network, input, data, 2);
-
     // ----------------------------------------------- VALIDATION ------------------------------------------------------------
 //    network.loadWeights(R"(C:\Users\Luecx\CLionProjects\Differentiation\resources\networks\koi5.13_relative_768-512-1\37_gd.net)");
 //    network.loadWeights(network_path + "60.nn");
@@ -198,26 +206,41 @@ int main() {
 
         float lossSum     = 0;
         auto  start       = std::chrono::system_clock::now();
+        float moving_loss = 0;
 
         for(int batch = 0; batch < EPOCH_SIZE; batch++){
             DataSet* position  = batch_loader.next();
 
             // fill the inputs and outputs
-            int      batchsize = assign_inputs_batch(*position, inputs, targets);
-            float    loss      = network.batch(inputs, targets, batchsize, true);
+            assign_inputs_batch(*position, inputs, targets);
+            float    loss      = network.batch(inputs, targets, BATCH_SIZE, true);
+            moving_loss        = 0.01 * loss + 0.99 * moving_loss;
 
-            lossSum += loss * batchsize;
+            lossSum += loss * BATCH_SIZE;
             auto                          end  = std::chrono::system_clock::now();
             std::chrono::duration<double> diff = end - start;
-            printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f avg. loss=%-16.12f speed=%-7d eps",
+            printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f epoch. loss=%-16.12f moving loss=%-16.12f speed=%-7d eps",
                    epoch,
                    batch,
                    EPOCH_SIZE,
                    loss,
-                   lossSum / batch / batchsize,
-                   (int) ((batch * BATCH_SIZE + batchsize) / diff.count()));
+                   lossSum / (batch+1.0f) / BATCH_SIZE,
+                   moving_loss,
+                   (int) (((batch+1) * BATCH_SIZE + BATCH_SIZE) / diff.count()));
             std::cout << std::flush;
+
+            csv_writer.write(epoch, batch, loss,  lossSum / (batch+1.0f) / BATCH_SIZE, moving_loss);
         }
+
+        std::stringstream ss{};
+        ss
+                 << "epoch: " << std::left << std::setw(10) << epoch
+                 << "loss: "  << std::left << std::setw(10) << lossSum / EPOCH_SIZE / BATCH_SIZE;
+        logging::write(ss.str());
+
+
+        std::cout << std::endl;
+        std::cout << " train loss=" << lossSum / EPOCH_SIZE / BATCH_SIZE << std::endl;
     }
 
 //    for (int i = 1; i < 20000; i++) {

@@ -6,8 +6,11 @@
 #ifndef BINARYPOSITIONWRAPPER_SRC_DATASET_BATCHLOADER_H_
 #define BINARYPOSITIONWRAPPER_SRC_DATASET_BATCHLOADER_H_
 
+#include "../misc/logging.h"
 #include "../position/fenparsing.h"
 #include "dataset.h"
+#include "io.h"
+#include "reader.h"
 
 #include <fstream>
 #include <random>
@@ -45,6 +48,18 @@ struct BatchLoader {
         current_file_index     = -1;
         positions_left_in_file = 0;
 
+        files.erase(
+            std::remove_if(
+                files.begin(),
+                files.end(),
+                [](const std::string& s){return !isReadable<BINARY>(s);}),
+            files.end());
+
+        if(files.size() == 0){
+            logging::write("Cannot create BatchLoader with no valid files. EXITING");
+            exit(-1);
+        }
+
         fillBuffer();
         std::swap(data_buffer, data);
         fillBuffer();
@@ -67,6 +82,7 @@ struct BatchLoader {
             current_file_index %= files.size();
             file = std::ifstream {files[current_file_index], std::ios::binary};
             if (!file.is_open()) {
+                logging::write("Could not open file: " + files[current_file_index]);
                 file.close();
             }
         }
@@ -77,6 +93,12 @@ struct BatchLoader {
 
         // store how many fens to read from this file
         positions_left_in_file = header.position_count;
+
+//        logging::write("Opened: "
+//                       + files[current_file_index]
+//                       + " and found "
+//                       + std::to_string(positions_left_in_file)
+//                       + " positions");
     }
 
     void fillBuffer() {

@@ -6,6 +6,8 @@
 #ifndef BINARYPOSITIONWRAPPER_SRC_DATASET_READER_H_
 #define BINARYPOSITIONWRAPPER_SRC_DATASET_READER_H_
 
+
+#include <filesystem>
 #include "../position/fenparsing.h"
 #include "../position/position.h"
 #include "dataset.h"
@@ -80,6 +82,35 @@ inline DataSet read(const std::string& file, uint64_t count=-1) {
 
     fclose(f);
     return data_set;
+}
+
+template<Format format>
+inline bool isReadable(const std::string& file){
+    if (!std::filesystem::exists(file)) return false;
+
+    if constexpr (format == BINARY){
+        std::filesystem::path p{file};
+        auto size = std::filesystem::file_size(p);
+
+        FILE*              f;
+        f = fopen(file.c_str(), "rb");
+        if(f == nullptr){
+            return false;
+        }
+
+        Header header{};
+        fread(&header, sizeof(Header), 1, f);
+
+        auto expected_size = header.position_count * sizeof(Position) + sizeof(Header);
+
+        return expected_size == size;
+
+    }else{
+        return true;
+    }
+
+
+
 }
 
 #endif    // BINARYPOSITIONWRAPPER_SRC_DATASET_READER_H_
