@@ -3,11 +3,13 @@
 #include "activations/Sigmoid.h"
 #include "dataset/batchloader.h"
 #include "dataset/reader.h"
+#include "dataset/writer.h"
 #include "layers/DenseLayer.h"
 #include "layers/DuplicateDenseLayer.h"
 #include "loss/MSE.h"
 #include "mappings.h"
 #include "misc/csv.h"
+#include "misc/timer.h"
 #include "network/network.h"
 #include "optimiser/Adam.h"
 #include "optimiser/optimiser.h"
@@ -19,8 +21,8 @@
 #include <chrono>
 #include <random>
 
-constexpr int BATCH_SIZE   = 1024 * 16;
-constexpr int EPOCH_SIZE   = 1024 * 16;
+constexpr int BATCH_SIZE        = 1024 * 16;
+constexpr int EPOCH_SIZE        = 1024 * 16;
 
 constexpr int IN_SIZE      = 12 * 64;
 constexpr int HIDDEN1_SIZE = 512;
@@ -138,29 +140,123 @@ void quantitizeNetwork(Network& network, const std::string& output) {
 }
 
 void commandLine(int argc, char* argv[]){
-    
+    if(argc <= 1) return;
+    std::string command = argv[1];
+    std::cout << "command: " << command << std::endl;
+
+    if(command == "convert"){
+        if(argc < 2) return;
+        std::vector<std::string> files{};
+        for(int i = 2; i < argc; i++){
+            auto f = std::filesystem::path(std::string(argv[i]));
+            if(!exists(f) || !is_regular_file(f)){
+                continue;
+            }
+            files.push_back(f.string());
+            std::cout << "file: " << f.string() << std::endl;
+        }
+
+        char type;
+        while (type != 'y' || type != 'n')
+        {
+            std::cout << "Continue? [y/n]" << std::endl;
+            std::cin >> type;
+        }
+        if(tolower(type) == 'y'){
+            for(auto h:files){
+                DataSet ds = read<TEXT>(h);
+                write(h + ".bin", ds);
+            }
+        }
+    }
+
+    if(command == "shuffle"){
+        if(argc < 2) return;
+        std::vector<std::string> files{};
+        for(int i = 2; i < argc; i++){
+            auto f = std::filesystem::path(std::string(argv[i]));
+            if(!exists(f) || !is_regular_file(f)){
+                continue;
+            }
+            files.push_back(f.string());
+            std::cout << "file: " << f.string() << std::endl;
+        }
+
+        char type;
+        while (type != 'y' || type != 'n')
+        {
+            std::cout << "Continue? [y/n]" << std::endl;
+            std::cin >> type;
+        }
+        if(tolower(type) == 'y'){
+            for(auto h:files){
+                DataSet ds = read<BINARY>(h);
+                std::shuffle(ds.positions.begin(), ds.positions.end(), std::mt19937(std::random_device()()));
+                write(h + "_shuffled.bin", ds);
+            }
+        }
+    }
+
+    if(command == "verify"){
+        if(argc < 2) return;
+        std::vector<std::string> files{};
+        for(int i = 2; i < argc; i++){
+            auto f = std::filesystem::path(std::string(argv[i]));
+            if(!exists(f) || !is_regular_file(f)){
+                continue;
+            }
+            files.push_back(f.string());
+            std::cout << "file: " << f.string() << std::endl;
+        }
+
+        char type;
+        while (type != 'y' || type != 'n')
+        {
+            std::cout << "Continue? [y/n]" << std::endl;
+            std::cin >> type;
+        }
+        if(tolower(type) == 'y'){
+            files.erase(
+                std::remove_if(
+                    files.begin(),
+                    files.end(),
+                    [](const std::string& s){return isReadable<BINARY>(s);}),
+                files.end());
+
+            std::cout << "non readable files: " << std::endl;
+            for(auto h:files){
+                std::cout << "   " << h << std::endl;
+            }
+        }
+
+    }
 }
 
 int main(int argc, char* argv[]) {
 
-    const std::string     path         = "../runs/king_relative_256/";
+//    commandLine(argc, argv);
+//    exit(-1);
+
+    const std::string     path         = "../runs/koi7.9_half_kingside_512_mirror/";
     const std::string     data_path    = path + "data/";
     const std::string     network_path = path + "networks/";
 
     // ----------------------------------------------- LOADING DATA ------------------------------------------------------------
     std::vector<std::string> files {};
-    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_0.txt.bin)");
-    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_1.txt.bin)");
-    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_2.txt.bin)");
-    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_3.txt.bin)");
-    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_4.txt.bin)");
-    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_5.txt.bin)");
-    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_6.txt.bin)");
-    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_7.txt.bin)");
-    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_8.txt.bin)");
-    files.push_back(R"(F:\OneDrive\ProgrammSpeicher\CLionProjects\Koivisto\resources\tuningsets\koi\koi7.9\generated_9.txt.bin)");
+    files.push_back(R"(H:\Koivisto Resourcen\Training Data\generated_0.txt.bin_shuffled.bin)");
+    files.push_back(R"(H:\Koivisto Resourcen\Training Data\generated_1.txt.bin_shuffled.bin)");
+    files.push_back(R"(H:\Koivisto Resourcen\Training Data\generated_2.txt.bin_shuffled.bin)");
+    files.push_back(R"(H:\Koivisto Resourcen\Training Data\generated_3.txt.bin_shuffled.bin)");
+    files.push_back(R"(H:\Koivisto Resourcen\Training Data\generated_4.txt.bin_shuffled.bin)");
+    files.push_back(R"(H:\Koivisto Resourcen\Training Data\generated_5.txt.bin_shuffled.bin)");
+    files.push_back(R"(H:\Koivisto Resourcen\Training Data\generated_6.txt.bin_shuffled.bin)");
+    files.push_back(R"(H:\Koivisto Resourcen\Training Data\generated_7.txt.bin_shuffled.bin)");
+    files.push_back(R"(H:\Koivisto Resourcen\Training Data\generated_8.txt.bin_shuffled.bin)");
 
-    BatchLoader batch_loader{files, BATCH_SIZE, 256};
+    BatchLoader batch_loader{files, BATCH_SIZE, 1024};
+
+    DataSet validation_set = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\generated_9.txt.bin_shuffled.bin)");
+
     // ----------------------------------------------- BATCH PREPARATION ------------------------------------------------------------
 
     // creating buffers where inputs and targets will be stored for a batch
@@ -175,6 +271,8 @@ int main(int argc, char* argv[]) {
     // ------------------------------------------------- CSV OUTPUT ----------------------------------------------------------------
     CSVWriter csv_writer{"test.csv"};
     csv_writer.write("epoch", "batch", "loss", "epoch loss", "exponential moving average loss");
+
+    logging::open(path + "/log.txt");
 
     // ----------------------------------------------- NETWORK STRUCTURE ------------------------------------------------------------
 
@@ -202,45 +300,67 @@ int main(int argc, char* argv[]) {
 //    exit(-1);
     // ----------------------------------------------- TRAINING ------------------------------------------------------------
 //
-    for(int epoch = 0; epoch < 1; epoch ++){
+    for(int epoch = 0; epoch < 10; epoch ++){
 
-        float lossSum     = 0;
-        auto  start       = std::chrono::system_clock::now();
-        float moving_loss = 0;
+        // track total epoch loss and some averaged batch loss
+        float acc_epoch_loss = 0;
+        float moving_loss    = 0;
+        // start time measurement
+        Timer timer{};
+        timer.tick();
 
+        // iterate over batches
         for(int batch = 0; batch < EPOCH_SIZE; batch++){
+            // get next dataset
             DataSet* position  = batch_loader.next();
 
             // fill the inputs and outputs
             assign_inputs_batch(*position, inputs, targets);
-            float    loss      = network.batch(inputs, targets, BATCH_SIZE, true);
-            moving_loss        = 0.01 * loss + 0.99 * moving_loss;
 
-            lossSum += loss * BATCH_SIZE;
-            auto                          end  = std::chrono::system_clock::now();
-            std::chrono::duration<double> diff = end - start;
-            printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f epoch. loss=%-16.12f moving loss=%-16.12f speed=%-7d eps",
+            // compute batch loss
+            float batch_loss   = network.batch(inputs, targets, BATCH_SIZE, true);
+//            float batch_loss = 0;
+
+            // update moving loss and accumulated epoch loss
+            moving_loss        = 0.01 * batch_loss + 0.99 * moving_loss;
+            acc_epoch_loss    += batch_loss * BATCH_SIZE;
+
+            // measure elapsed time
+            timer.tock();
+
+            // some constants
+            auto completed_batches = batch + 1.0f;
+            auto passed_entries    = completed_batches * BATCH_SIZE;
+            auto elapsed_time      = timer.duration().count() / 1000.0f;
+            auto nps               = passed_entries / elapsed_time;
+
+            // output
+            printf("\repoch# %-10d batch# %-5d/%-10d batch_loss=%-16.12f epoch. batch_loss=%-16.12f moving batch_loss=%-16.12f speed=%-7d eps",
                    epoch,
                    batch,
-                   EPOCH_SIZE,
-                   loss,
-                   lossSum / (batch+1.0f) / BATCH_SIZE,
+                   EPOCH_SIZE, batch_loss,
+                   acc_epoch_loss / passed_entries,
                    moving_loss,
-                   (int) (((batch+1) * BATCH_SIZE + BATCH_SIZE) / diff.count()));
+                   (int) nps);
             std::cout << std::flush;
 
-            csv_writer.write(epoch, batch, loss,  lossSum / (batch+1.0f) / BATCH_SIZE, moving_loss);
+            // write to csv
+            csv_writer.write(epoch, batch, batch_loss, acc_epoch_loss / (batch+1.0f) / BATCH_SIZE, moving_loss);
         }
-
-        std::stringstream ss{};
-        ss
-                 << "epoch: " << std::left << std::setw(10) << epoch
-                 << "loss: "  << std::left << std::setw(10) << lossSum / EPOCH_SIZE / BATCH_SIZE;
-        logging::write(ss.str());
-
+        network.saveWeights(network_path + std::to_string(epoch) + ".nn");
 
         std::cout << std::endl;
-        std::cout << " train loss=" << lossSum / EPOCH_SIZE / BATCH_SIZE << std::endl;
+
+        // compute validation loss
+        float val_loss = 0;
+        for (int batch = 0; batch < floor(validation_set.header.position_count / BATCH_SIZE); batch++) {
+            auto s = assign_inputs_batch(validation_set, inputs, targets, batch * BATCH_SIZE);
+            val_loss += network.batch(inputs, targets, s, false) * s;
+        }
+
+        logging::write("epoch          : " + std::to_string(epoch));
+        logging::write("train loss     : " + std::to_string(acc_epoch_loss / EPOCH_SIZE / BATCH_SIZE));
+        logging::write("validation loss: " + std::to_string(val_loss / validation_set.positions.size()));
     }
 
 //    for (int i = 1; i < 20000; i++) {

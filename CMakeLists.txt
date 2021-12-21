@@ -54,10 +54,14 @@ add_executable(Differentiation
         src/dataset/batchloader.h src/misc/timer.h src/misc/csv.h src/misc/csv.cpp src/misc/csv.h)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")
+
+set(CMAKE_EXE_LINKER_FLAGS " -static")
+
+target_link_libraries(Differentiation -static-libgcc -static-libstdc++)

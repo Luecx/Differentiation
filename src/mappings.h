@@ -65,14 +65,16 @@ inline void assign_input(Position& p, Input& input, Data& output) {
 
 }
 
-inline int  assign_inputs_batch(DataSet& positions, std::vector<Input>& inputs, std::vector<Data>& targets) {
+inline int  assign_inputs_batch(DataSet& positions, std::vector<Input>& inputs, std::vector<Data>& targets, int offset=0) {
+
+    auto size = std::min(positions.header.position_count - offset, inputs.size());
 
 #pragma omp parallel for schedule(auto) num_threads(UPDATE_THREADS)
-    for (int i = 0; i < positions.header.position_count; i++) {
-        assign_input(positions.positions[i], inputs[i], targets[i]);
+    for (int i = 0; i < size; i++) {
+        assign_input(positions.positions[i + offset], inputs[i], targets[i]);
     }
 
-    return positions.header.position_count;
+    return size;
 }
 }    // namespace dense_relative
 

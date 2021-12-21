@@ -24,7 +24,7 @@
 #define DIFFERENTIATION_SRC_MISC_TIMER_H_
 
 #include <chrono>
-template<class TimeT = std::chrono::milliseconds, class ClockT = std::chrono::steady_clock> class timer {
+template<class TimeT = std::chrono::milliseconds, class ClockT = std::chrono::steady_clock> class Timer {
     using timep_t  = typename ClockT::time_point;
     timep_t _start = ClockT::now(), _end = {};
 
@@ -37,7 +37,7 @@ template<class TimeT = std::chrono::milliseconds, class ClockT = std::chrono::st
     void tock() { _end = ClockT::now(); }
 
     template<class TT = TimeT> TT duration() const {
-        gsl_Expects(_end != timep_t {} && "toc before reporting");
+//        gsl_Expects(_end != timep_t {} && "toc before reporting");
         return std::chrono::duration_cast<TT>(_end - _start);
     }
 };

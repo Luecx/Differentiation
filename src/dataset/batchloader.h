@@ -154,6 +154,8 @@ struct BatchLoader {
             current_batch_index = 0;
         }
 
+        // assign the data to the batch
+//        batch.positions.assign(data->positions.begin() + current_batch_index * batch_size, data->positions.begin() + current_batch_index * batch_size + batch_size);
         // copy the data to the batch
         std::memcpy(&batch.positions[0],
                     &data->positions[current_batch_index * batch_size],
