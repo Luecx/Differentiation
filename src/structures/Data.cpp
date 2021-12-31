@@ -102,7 +102,7 @@ void Data::randomiseGaussian(float mean, float deviation) const {
 
 void Data::randomiseKieren() const {
 #define uniform() ((float) (rand() + 1) / ((float) RAND_MAX + 2))
-#define random()  (sqrtf(-2.0 * log(uniform())) * cos(2 * M_PI * uniform()))
+#define random()  (sqrtf(-2.0 * log(uniform())) * cos(2 * 3.141592653589793238464 * uniform()))
 
     for (int j = 0; j < M * N; j++)
         values[j] = random() / 4.0;

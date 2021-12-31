@@ -15,11 +15,11 @@
 #include <string>
 
 struct FenCharacter {
-    char   character;
-    Square skip_squares;
-    Piece  piece;
-    Rank   rank;
-    File   file;
+    char   character{0};
+    Square skip_squares{0};
+    Piece  piece{0};
+    Rank   rank{0};
+    File   file{0};
 };
 
 static FenCharacter          fen_character_lookup[128] {};
