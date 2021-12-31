@@ -6,6 +6,7 @@
 #define DIFFERENTIATION_MAPPINGS_H
 
 #include "dataset/dataset.h"
+#include "position/fenparsing.h"
 #include "structures/Data.h"
 
 #include <cmath>
@@ -65,13 +66,16 @@ inline void assign_input(Position& p, Input& input, Data& output) {
 
 }
 
-inline int  assign_inputs_batch(DataSet& positions, std::vector<Input>& inputs, std::vector<Data>& targets, int offset=0) {
+inline int  assign_inputs_batch(DataSet& positions, std::vector<Input>& inputs, std::vector<Data>& targets, int offset=0, bool debug=false) {
 
     auto size = std::min(positions.header.position_count - offset, inputs.size());
 
-#pragma omp parallel for schedule(auto) num_threads(UPDATE_THREADS)
+//#pragma omp parallel for schedule(auto) num_threads(UPDATE_THREADS)
     for (int i = 0; i < size; i++) {
         assign_input(positions.positions[i + offset], inputs[i], targets[i]);
+        if(debug){
+            std::cout << writeFen(positions.positions[i+offset]) << std::endl;
+        }
     }
 
     return size;

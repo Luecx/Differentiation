@@ -9,6 +9,7 @@
 #include "../position/position.h"
 #include "header.h"
 
+#include <random>
 #include <vector>
 
 struct DataSet {
@@ -18,6 +19,10 @@ struct DataSet {
 
     void addData(DataSet& other){
         positions.insert(std::end(positions), std::begin(other.positions), std::end(other.positions));
+    }
+
+    void shuffle(){
+        std::shuffle(positions.begin(), positions.end(), std::mt19937(std::random_device()()));
     }
 };
 

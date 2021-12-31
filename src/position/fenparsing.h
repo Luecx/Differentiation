@@ -22,9 +22,9 @@ struct FenCharacter {
     File   file;
 };
 
-FenCharacter          fen_character_lookup[128] {};
-bool fen_character_lookup_initialised = false;
-void init_character_lookup() {
+static FenCharacter          fen_character_lookup[128] {};
+static bool fen_character_lookup_initialised = false;
+inline void init_character_lookup() {
 
     if (fen_character_lookup_initialised)
         return;

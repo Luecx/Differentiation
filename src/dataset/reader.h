@@ -35,6 +35,7 @@ inline DataSet read(const std::string& file, uint64_t count=-1) {
 
     // check if opening has worked
     if (f == nullptr) {
+        std::cout << "could not open: " << file << std::endl;
         return DataSet {};
     }
 
@@ -53,7 +54,7 @@ inline DataSet read(const std::string& file, uint64_t count=-1) {
         for(int c = 0; c < chunks; c++){
 
             int start = c * CHUNK_SIZE;
-            int end   = c * CHUNK_SIZE + 1e6;
+            int end   = c * CHUNK_SIZE + CHUNK_SIZE;
             if(end > data_set.positions.size()) end = data_set.positions.size();
             fread(&data_set.positions[start], sizeof(Position), end-start, f);
             printf("\r[Reading positions] Current count=%d", end);

@@ -74,6 +74,26 @@ inline Square bitscanReverse(BB bb) {
 }
 
 
+
+/**
+ * returns the amount of set bits in the given bitboard.
+ * @param bb
+ * @return
+ */
+inline int bitCount(BB bb) {
+    return __builtin_popcountll(bb);
+}
+
+
+/**
+ * counts the ones inside the bitboard before the given index
+ */
+inline int bitCount(BB bb, int pos){
+    BB mask = ((BB) 1 << pos) - 1;
+    return bitCount(bb & mask);
+}
+
+
 /**
  * returns the index of the nth set bit, starting at the lsb
  * @param bb
@@ -81,7 +101,9 @@ inline Square bitscanReverse(BB bb) {
  */
 inline Square bitscanForwardIndex(BB bb, Square n) {
 
-#ifdef __ARM__
+#if defined __BMI2__  && defined __i386__
+    return __builtin_ctzll(_pdep_u64(1ULL << n, bb));
+#else
     https://stackoverflow.com/questions/7669057/find-nth-set-bit-in-an-int
     n += 1;
     BB shifted = 0; // running total
@@ -107,30 +129,10 @@ inline Square bitscanForwardIndex(BB bb, Square n) {
         bb = next;
     }
     return bitscanForward((bb ^ next) << shifted);
-#else
-    return __builtin_ctzll(_pdep_u64(1ULL << n, bb));
 #endif
 }
 
 
-
-/**
- * returns the amount of set bits in the given bitboard.
- * @param bb
- * @return
- */
-inline int bitCount(BB bb) {
-    return __builtin_popcountll(bb);
-}
-
-
-/**
- * counts the ones inside the bitboard before the given index
- */
-inline int bitCount(BB bb, int pos){
-    BB mask = ((BB) 1 << pos) - 1;
-    return bitCount(bb & mask);
-}
 
 /**
  * find fully set groups of 4

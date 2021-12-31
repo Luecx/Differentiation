@@ -51,7 +51,7 @@ add_executable(Differentiation
         src/dataset/reader.h
         src/dataset/writer.h
         src/dataset/io.h
-        src/dataset/batchloader.h src/misc/timer.h src/misc/csv.h src/misc/csv.cpp src/misc/csv.h)
+        src/dataset/batchloader.h src/misc/timer.h src/misc/csv.h src/misc/csv.cpp src/misc/csv.h src/dataset/shuffle.h)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
