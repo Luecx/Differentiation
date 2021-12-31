@@ -6,36 +6,37 @@
 #define DIFFERENTIATION_NETWORK_H
 
 #include "../activations/Activation.h"
-#include "../loss/Loss.h"
 #include "../layers/Layer.h"
+#include "../loss/Loss.h"
 #include "../misc/config.h"
 #include "../optimiser/optimiser.h"
 #include "../structures/Data.h"
 #include "ThreadData.h"
 
-struct Network{
+#include <fstream>
 
-private:
-    std::vector<LayerInterface*> layers{};
-    ThreadData *threadData[NN_THREADS]{};
-    Loss        *loss      = nullptr;
-    Optimiser   *optimiser = nullptr;
+struct Network {
+
+    private:
+    std::vector<LayerInterface*> layers {};
+    ThreadData*                  threadData[NN_THREADS] {};
+    Loss*                        loss      = nullptr;
+    Optimiser*                   optimiser = nullptr;
 
     // true if the inputs will be tracked and used for efficient updates
-    bool trackSparseInputs = false;
+    bool                         trackSparseInputs = false;
     Data*                        usedWeightColumns = nullptr;
 
-public:
+    public:
+    explicit Network(const std::vector<LayerInterface*>& layers);
 
-    explicit Network(const std::vector<LayerInterface *> &layers);
-
-//    Network(Network &&other);
-//
-//    Network(const Network &other) = delete;
-//
-//    Network& operator=(Network &&other);
-//
-//    Network& operator=(const Network &other) = delete;
+    //    Network(Network &&other);
+    //
+    //    Network(const Network &other) = delete;
+    //
+    //    Network& operator=(Network &&other);
+    //
+    //    Network& operator=(const Network &other) = delete;
 
     virtual ~Network();
 
@@ -45,13 +46,13 @@ public:
 
     Loss*           getLoss() const;
 
-    Data*           getOutput(int threadID=0) const;
+    Data*           getOutput(int threadID = 0) const;
 
     void            trackSparseInputsOverBatch(bool value);
 
     double          batch(std::vector<Input>& inputs, std::vector<Data>& targets, int count = -1, bool train = true);
 
-    double          train(Input& input, Data& target, bool update=true);
+    double          train(Input& input, Data& target, bool update = true);
 
     Data*           evaluate(Input& input);
 
@@ -72,4 +73,4 @@ public:
     void            logOverview();
 };
 
-#endif //DIFFERENTIATION_NETWORK_H
+#endif    // DIFFERENTIATION_NETWORK_H

@@ -13,6 +13,7 @@
 #include "structures/Data.h"
 #include "structures/Input.h"
 #include "verify/checkGradients.h"
+#include "dataset/shuffle.h"
 
 #include <algorithm>
 #include <chrono>

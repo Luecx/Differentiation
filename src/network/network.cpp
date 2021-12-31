@@ -64,6 +64,7 @@ void Network::setOptimiser(Optimiser *optimiser) {
 }
 
 Network::~Network() {
+
 //    delete this->loss;
 //    delete this->optimiser;
 //    for (int i = 0; i < NN_THREADS; i++) {

@@ -6,6 +6,8 @@
 #ifndef BINARYPOSITIONWRAPPER_SRC_DATASET_READER_H_
 #define BINARYPOSITIONWRAPPER_SRC_DATASET_READER_H_
 
+
+#include <filesystem>
 #include "../position/fenparsing.h"
 #include "../position/position.h"
 #include "dataset.h"
@@ -33,6 +35,7 @@ inline DataSet read(const std::string& file, uint64_t count=-1) {
 
     // check if opening has worked
     if (f == nullptr) {
+        std::cout << "could not open: " << file << std::endl;
         return DataSet {};
     }
 
@@ -51,7 +54,7 @@ inline DataSet read(const std::string& file, uint64_t count=-1) {
         for(int c = 0; c < chunks; c++){
 
             int start = c * CHUNK_SIZE;
-            int end   = c * CHUNK_SIZE + 1e6;
+            int end   = c * CHUNK_SIZE + CHUNK_SIZE;
             if(end > data_set.positions.size()) end = data_set.positions.size();
             fread(&data_set.positions[start], sizeof(Position), end-start, f);
             printf("\r[Reading positions] Current count=%d", end);
@@ -80,6 +83,35 @@ inline DataSet read(const std::string& file, uint64_t count=-1) {
 
     fclose(f);
     return data_set;
+}
+
+template<Format format>
+inline bool isReadable(const std::string& file){
+    if (!std::filesystem::exists(file)) return false;
+
+    if constexpr (format == BINARY){
+        std::filesystem::path p{file};
+        auto size = std::filesystem::file_size(p);
+
+        FILE*              f;
+        f = fopen(file.c_str(), "rb");
+        if(f == nullptr){
+            return false;
+        }
+
+        Header header{};
+        fread(&header, sizeof(Header), 1, f);
+
+        auto expected_size = header.position_count * sizeof(Position) + sizeof(Header);
+
+        return expected_size == size;
+
+    }else{
+        return true;
+    }
+
+
+
 }
 
 #endif    // BINARYPOSITIONWRAPPER_SRC_DATASET_READER_H_

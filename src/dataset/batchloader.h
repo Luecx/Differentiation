@@ -6,8 +6,11 @@
 #ifndef BINARYPOSITIONWRAPPER_SRC_DATASET_BATCHLOADER_H_
 #define BINARYPOSITIONWRAPPER_SRC_DATASET_BATCHLOADER_H_
 
+#include "../misc/logging.h"
 #include "../position/fenparsing.h"
 #include "dataset.h"
+#include "io.h"
+#include "reader.h"
 
 #include <fstream>
 #include <random>
@@ -45,6 +48,18 @@ struct BatchLoader {
         current_file_index     = -1;
         positions_left_in_file = 0;
 
+        files.erase(
+            std::remove_if(
+                files.begin(),
+                files.end(),
+                [](const std::string& s){return !isReadable<BINARY>(s);}),
+            files.end());
+
+        if(files.size() == 0){
+            logging::write("Cannot create BatchLoader with no valid files. EXITING");
+            exit(-1);
+        }
+
         fillBuffer();
         std::swap(data_buffer, data);
         fillBuffer();
@@ -67,7 +82,7 @@ struct BatchLoader {
             current_file_index %= files.size();
             file = std::ifstream {files[current_file_index], std::ios::binary};
             if (!file.is_open()) {
-                std::cout << "cannot open " << files[current_file_index] << std::endl;
+                logging::write("Could not open file: " + files[current_file_index]);
                 file.close();
             }
         }
@@ -78,6 +93,12 @@ struct BatchLoader {
 
         // store how many fens to read from this file
         positions_left_in_file = header.position_count;
+
+//        logging::write("Opened: "
+//                       + files[current_file_index]
+//                       + " and found "
+//                       + std::to_string(positions_left_in_file)
+//                       + " positions");
     }
 
     void fillBuffer() {
@@ -101,7 +122,7 @@ struct BatchLoader {
             file.read(reinterpret_cast<char*>(&data_buffer->positions[offset]),
                       sizeof(Position) * filling);
 
-            std::shuffle(data_buffer->positions.begin(), data_buffer->positions.end(), std::mt19937(std::random_device()()));
+//            std::shuffle(data_buffer->positions.begin(), data_buffer->positions.end(), std::mt19937(std::random_device()()));
 
 //            std::cout << "read  " << file.gcount() << " bytes" << std::endl;
 //            std::cout << "tried " << sizeof(Position) * filling << " bytes" << std::endl;
@@ -133,6 +154,8 @@ struct BatchLoader {
             current_batch_index = 0;
         }
 
+        // assign the data to the batch
+//        batch.positions.assign(data->positions.begin() + current_batch_index * batch_size, data->positions.begin() + current_batch_index * batch_size + batch_size);
         // copy the data to the batch
         std::memcpy(&batch.positions[0],
                     &data->positions[current_batch_index * batch_size],
