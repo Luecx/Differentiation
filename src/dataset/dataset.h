@@ -11,6 +11,7 @@
 
 #include <random>
 #include <vector>
+#include <algorithm>
 
 struct DataSet {
 

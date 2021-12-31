@@ -3,6 +3,8 @@
 #ifndef DIFFERENTIATION_SRC_DATASET_SHUFFLE_H_
 #define DIFFERENTIATION_SRC_DATASET_SHUFFLE_H_
 
+#include "writer.h"
+
 #include <cstring>
 #include <vector>
 

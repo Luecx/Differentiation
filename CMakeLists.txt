@@ -35,8 +35,6 @@ add_executable(Differentiation
         src/misc/config.h
         src/misc/logging.h                  src/misc/logging.cpp
 
-        src/mappings.cpp src/mappings.h
-
         src/position/piece.h
         src/position/position.h
         src/position/bitboard.h

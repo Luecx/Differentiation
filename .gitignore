@@ -8,3 +8,5 @@ cmake-build-debug/
 *.zip
 
 resources/
+
+bin/
