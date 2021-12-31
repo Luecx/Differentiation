@@ -23,7 +23,7 @@
 #include <random>
 
 constexpr int BATCH_SIZE        = 1024 * 16;
-constexpr int EPOCH_SIZE        = 2048;
+constexpr int EPOCH_SIZE        = 1024 * 2;
 
 constexpr int IN_SIZE      = 12 * 64;
 constexpr int HIDDEN1_SIZE = 512;
@@ -272,8 +272,8 @@ void commandLine(int argc, char* argv[]){
 
 int main(int argc, char* argv[]) {
 
-    commandLine(argc, argv);
-    exit(0);
+//    commandLine(argc, argv);
+//    exit(0);
 
     const std::string     path         = "../resources/networks/koi7.9_half_kingside_512_mirror/";
     const std::string     data_path    = path + "data/";
@@ -281,38 +281,38 @@ int main(int argc, char* argv[]) {
 
     // ----------------------------------------------- LOADING DATA ------------------------------------------------------------
     std::vector<std::string> files {};
-    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_0.txt.bin)");
-    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_1.txt.bin)");
-    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_2.txt.bin)");
-    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_3.txt.bin)");
-    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_4.txt.bin)");
-    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_5.txt.bin)");
-    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_6.txt.bin)");
-    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_7.txt.bin)");
-    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_8.txt.bin)");
+    files.push_back(R"(H:\Koivisto Resourcen\Training Data\generated_0.txt.bin)");
+//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_1.txt.bin)");
+//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_2.txt.bin)");
+//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_3.txt.bin)");
+//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_4.txt.bin)");
+//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_5.txt.bin)");
+//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_6.txt.bin)");
+//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_7.txt.bin)");
+//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_8.txt.bin)");
 
 
-    BatchLoader batch_loader{files, BATCH_SIZE, 64};
+    BatchLoader batch_loader{files, BATCH_SIZE, 256};
 
-    DataSet validation_set = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_9.txt.bin_shuffled.bin)");
-    DataSet test = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_0.txt.bin)");
-    test.positions.erase(
-        std::remove_if(
-            test.positions.begin(),
-            test.positions.end(),
-            [](const Position& s){return s.getPieceCount()<2;}),
-        test.positions.end());
-    write("test.bin", test);
-    DataSet test2 = read<BINARY>("test.bin");
-    test2.positions.erase(
-        std::remove_if(
-            test2.positions.begin(),
-            test2.positions.end(),
-            [](const Position& s){return s.getPieceCount()<2;}),
-        test2.positions.end());
-    write("test2.bin",test);
-
-    exit(-1);
+//    DataSet validation_set = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_9.txt.bin_shuffled.bin)");
+//    DataSet test = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_0.txt.bin)");
+//    test.positions.erase(
+//        std::remove_if(
+//            test.positions.begin(),
+//            test.positions.end(),
+//            [](const Position& s){return s.getPieceCount()<2;}),
+//        test.positions.end());
+//    write("test.bin", test);
+//    DataSet test2 = read<BINARY>("test.bin");
+//    test2.positions.erase(
+//        std::remove_if(
+//            test2.positions.begin(),
+//            test2.positions.end(),
+//            [](const Position& s){return s.getPieceCount()<2;}),
+//        test2.positions.end());
+//    write("test2.bin",test);
+//
+//    exit(-1);
 
     // ----------------------------------------------- BATCH PREPARATION ------------------------------------------------------------
 
@@ -326,10 +326,10 @@ int main(int argc, char* argv[]) {
     }
 
     // ------------------------------------------------- CSV OUTPUT ----------------------------------------------------------------
-    CSVWriter csv_writer{path + "loss.csv"};
+    CSVWriter csv_writer{path + "loss2.csv"};
     csv_writer.write("epoch", "batch", "loss", "epoch loss", "exponential moving average loss");
 
-    logging::open(path + "log.txt");
+//    logging::open(path + "log.txt");
 
     // ----------------------------------------------- NETWORK STRUCTURE ------------------------------------------------------------
 
@@ -342,7 +342,7 @@ int main(int argc, char* argv[]) {
     Network network {layers};
     MSE     lossFunction {};
     Adam    adam {};
-    adam.alpha = 0.01;
+    adam.alpha = 0.001;
     network.setLoss(&lossFunction);
     network.setOptimiser(&adam);
 
@@ -370,10 +370,8 @@ int main(int argc, char* argv[]) {
             // get next dataset
             DataSet* position  = batch_loader.next();
 
-            if(batch == 1) exit(-1);
             // fill the inputs and outputs
-            assign_inputs_batch(*position, inputs, targets, 0, batch==0);
-
+            assign_inputs_batch(*position, inputs, targets, 0);
 
             // compute batch loss
             float batch_loss   = network.batch(inputs, targets, BATCH_SIZE, true);
@@ -409,16 +407,16 @@ int main(int argc, char* argv[]) {
 
         std::cout << std::endl;
 
-        // compute validation loss
-        float val_loss = 0;
-        for (int batch = 0; batch < floor(validation_set.header.position_count / BATCH_SIZE); batch++) {
-            auto s = assign_inputs_batch(validation_set, inputs, targets, batch * BATCH_SIZE);
-            val_loss += network.batch(inputs, targets, s, false) * s;
-        }
+//        // compute validation loss
+//        float val_loss = 0;
+//        for (int batch = 0; batch < floor(validation_set.header.position_count / BATCH_SIZE); batch++) {
+//            auto s = assign_inputs_batch(validation_set, inputs, targets, batch * BATCH_SIZE);
+//            val_loss += network.batch(inputs, targets, s, false) * s;
+//        }
 
         logging::write("epoch          : " + std::to_string(epoch));
         logging::write("train loss     : " + std::to_string(acc_epoch_loss / EPOCH_SIZE / BATCH_SIZE));
-        logging::write("validation loss: " + std::to_string(val_loss / validation_set.positions.size()));
+//        logging::write("validation loss: " + std::to_string(val_loss / validation_set.positions.size()));
     }
 
 //    for (int i = 1; i < 20000; i++) {

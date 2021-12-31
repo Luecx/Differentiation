@@ -129,6 +129,7 @@ struct BatchLoader {
 //            std::cout << positions_left_in_file << std::endl;
 
             if(file.gcount() != sizeof(Position) * filling){
+                logging::write("Some issue occured while reading file");
                 exit(-1);
             }
 
