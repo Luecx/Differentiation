@@ -122,13 +122,14 @@ struct BatchLoader {
             file.read(reinterpret_cast<char*>(&data_buffer->positions[offset]),
                       sizeof(Position) * filling);
 
-//            std::shuffle(data_buffer->positions.begin(), data_buffer->positions.end(), std::mt19937(std::random_device()()));
+            std::shuffle(data_buffer->positions.begin(), data_buffer->positions.end(), std::mt19937(std::random_device()()));
 
 //            std::cout << "read  " << file.gcount() << " bytes" << std::endl;
 //            std::cout << "tried " << sizeof(Position) * filling << " bytes" << std::endl;
 //            std::cout << positions_left_in_file << std::endl;
 
             if(file.gcount() != sizeof(Position) * filling){
+                logging::write("Some issue occured while reading file");
                 exit(-1);
             }
 

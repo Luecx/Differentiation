@@ -36,7 +36,7 @@ MAKROS      = -DMINOR_VERSION=$(MINOR) -DMAJOR_VERSION=$(MAJOR)
 
 NATIVEFLAGS = -march=native -flto
 STATICFLAGS = -static -static-libgcc -static-libstdc++
-DLLFLAGS    = -shared
+DLLFLAGS    = -shared -fPIC
 
 native:
 	mkdir -p $(ROOT)$(FOLDER)
@@ -44,5 +44,6 @@ native:
 
 shared:
 	mkdir -p $(ROOT)$(FOLDER)
-	$(CC) $(CFLAGS) $(SRC) $(NATIVEFLAGS) $(OPENMPFLAGS) $(DLLFLAGS) $(MAKROS) $(LIBS) -o $(EXE)-x64-$(PREFIX)-shared$(SUFFIX)
+	$(CC) $(CFLAGS) $(SRC) $(NATIVEFLAGS) $(OPENMPFLAGS) $(DLLFLAGS) $(MAKROS) $(LIBS)
+# -o $(EXE)-x64-$(PREFIX)-shared$(SUFFIX)
 
