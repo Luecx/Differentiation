@@ -70,7 +70,7 @@ inline int  assign_inputs_batch(DataSet& positions, std::vector<Input>& inputs, 
 
     auto size = std::min(positions.header.position_count - offset, inputs.size());
 
-//#pragma omp parallel for schedule(auto) num_threads(UPDATE_THREADS)
+#pragma omp parallel for schedule(auto) num_threads(UPDATE_THREADS)
     for (int i = 0; i < size; i++) {
         assign_input(positions.positions[i + offset], inputs[i], targets[i]);
     }

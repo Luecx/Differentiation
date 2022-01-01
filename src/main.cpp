@@ -23,7 +23,7 @@
 #include <random>
 
 constexpr int BATCH_SIZE        = 1024 * 16;
-constexpr int EPOCH_SIZE        = 1024 * 2;
+constexpr int EPOCH_SIZE        = 1024 * 64;
 
 constexpr int IN_SIZE      = 12 * 64;
 constexpr int HIDDEN1_SIZE = 512;
@@ -281,7 +281,7 @@ int main(int argc, char* argv[]) {
 
     // ----------------------------------------------- LOADING DATA ------------------------------------------------------------
     std::vector<std::string> files {};
-    files.push_back(R"(H:\Koivisto Resourcen\Training Data\generated_0.txt.bin)");
+    files.push_back(R"(H:\Koivisto Resourcen\Training Data\shuffled_repaired_generated_0.txt.bin)");
 //    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_1.txt.bin)");
 //    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_2.txt.bin)");
 //    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_3.txt.bin)");
@@ -294,7 +294,7 @@ int main(int argc, char* argv[]) {
 
     BatchLoader batch_loader{files, BATCH_SIZE, 256};
 
-//    DataSet validation_set = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_9.txt.bin_shuffled.bin)");
+    DataSet validation_set = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\generated_0.txt.bin)");
 //    DataSet test = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_0.txt.bin)");
 //    test.positions.erase(
 //        std::remove_if(
@@ -342,7 +342,7 @@ int main(int argc, char* argv[]) {
     Network network {layers};
     MSE     lossFunction {};
     Adam    adam {};
-    adam.alpha = 0.001;
+    adam.alpha = 0.01;
     network.setLoss(&lossFunction);
     network.setOptimiser(&adam);
 
@@ -356,11 +356,11 @@ int main(int argc, char* argv[]) {
 //    computeScalars(network, positions);
 //    exit(-1);
     // ----------------------------------------------- TRAINING ------------------------------------------------------------
-    for(int epoch = 0; epoch < 1; epoch ++){
+    for(int epoch = 0; epoch < 4; epoch ++){
 
         // track total epoch loss and some averaged batch loss
         float acc_epoch_loss = 0;
-        float moving_loss    = 0;
+        float moving_loss    = -1;
         // start time measurement
         Timer timer{};
         timer.tick();
@@ -378,7 +378,10 @@ int main(int argc, char* argv[]) {
 //            float batch_loss = 0;
 
             // update moving loss and accumulated epoch loss
-            moving_loss        = 0.01 * batch_loss + 0.99 * moving_loss;
+            if(moving_loss < 0)
+                moving_loss = batch_loss;
+            else
+                moving_loss        = 0.01 * batch_loss + 0.99 * moving_loss;
             acc_epoch_loss    += batch_loss * BATCH_SIZE;
 
             // measure elapsed time
@@ -407,16 +410,16 @@ int main(int argc, char* argv[]) {
 
         std::cout << std::endl;
 
-//        // compute validation loss
-//        float val_loss = 0;
-//        for (int batch = 0; batch < floor(validation_set.header.position_count / BATCH_SIZE); batch++) {
-//            auto s = assign_inputs_batch(validation_set, inputs, targets, batch * BATCH_SIZE);
-//            val_loss += network.batch(inputs, targets, s, false) * s;
-//        }
+        // compute validation loss
+        float val_loss = 0;
+        for (int batch = 0; batch < floor(validation_set.header.position_count / BATCH_SIZE); batch++) {
+            auto s = assign_inputs_batch(validation_set, inputs, targets, batch * BATCH_SIZE);
+            val_loss += network.batch(inputs, targets, s, false) * s;
+        }
 
         logging::write("epoch          : " + std::to_string(epoch));
         logging::write("train loss     : " + std::to_string(acc_epoch_loss / EPOCH_SIZE / BATCH_SIZE));
-//        logging::write("validation loss: " + std::to_string(val_loss / validation_set.positions.size()));
+        logging::write("validation loss: " + std::to_string(val_loss / validation_set.positions.size()));
     }
 
 //    for (int i = 1; i < 20000; i++) {
