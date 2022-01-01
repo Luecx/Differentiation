@@ -31,7 +31,7 @@ void Adam::apply(Data *values, Data *gradient, Data *first_moment, Data *second_
         double  first_moment_corrected = (* first_moment)(i) / (1 - pow(beta1, time));
         double second_moment_corrected = (*second_moment)(i) / (1 - pow(beta2, time));
 
-        (*values)(i)  -= alpha * first_moment_corrected / (sqrt(second_moment_corrected) + eps);
+        (*values)(i)  -= alpha * (* first_moment)(i) / (sqrt((*second_moment)(i)) + eps);
         (*gradient)(i) = 0;
     }
 }

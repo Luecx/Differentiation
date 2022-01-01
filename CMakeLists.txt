@@ -32,11 +32,24 @@ add_executable(Differentiation
 
         src/verify/checkGradients.h
 
-        src/misc/Reader.h                   src/misc/Reader.cpp
         src/misc/config.h
         src/misc/logging.h                  src/misc/logging.cpp
 
-        src/mappings.cpp src/mappings.h )
+        src/position/piece.h
+        src/position/position.h
+        src/position/bitboard.h
+        src/position/piecelist.h
+        src/position/positionmeta.h
+        src/position/defs.h
+        src/position/result.h
+        src/position/fenparsing.h
+        src/position/square.h
+        src/dataset/dataset.h
+        src/dataset/header.h
+        src/dataset/reader.h
+        src/dataset/writer.h
+        src/dataset/io.h
+        src/dataset/batchloader.h src/misc/timer.h src/misc/csv.h src/misc/csv.cpp src/misc/csv.h src/dataset/shuffle.h)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
@@ -46,3 +59,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")
+
+set(CMAKE_EXE_LINKER_FLAGS " -static")
+
+target_link_libraries(Differentiation -static-libgcc -static-libstdc++)
