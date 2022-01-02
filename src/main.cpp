@@ -22,8 +22,8 @@
 #include <chrono>
 #include <random>
 
-constexpr int BATCH_SIZE        = 1024 * 16;
-constexpr int EPOCH_SIZE        = 1024 * 64;
+constexpr int BATCH_SIZE        = 1024 * 8;
+constexpr int EPOCH_SIZE        = 1024 * 16;
 
 constexpr int IN_SIZE      = 12 * 64;
 constexpr int HIDDEN1_SIZE = 512;
@@ -281,27 +281,18 @@ int main(int argc, char* argv[]) {
 
     // ----------------------------------------------- LOADING DATA ------------------------------------------------------------
     std::vector<std::string> files {};
-    files.push_back(R"(H:\Koivisto Resourcen\Training Data\shuffled_repaired_generated_0.txt.bin)");
-//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_1.txt.bin)");
-//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_2.txt.bin)");
-//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_3.txt.bin)");
-//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_4.txt.bin)");
-//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_5.txt.bin)");
-//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_6.txt.bin)");
-//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_7.txt.bin)");
-//    files.push_back(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_8.txt.bin)");
+    for(int i = 4; i < 96; i++){
+        files.push_back(R"(H:\Koivisto Resourcen\Training Data\shuffled_generated_)" + std::to_string(i) + ".txt.bin");
+    }
+    DataSet validation_set = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\shuffled_generated_0.txt.bin)");
 
+    BatchLoader batch_loader{files, BATCH_SIZE, 4096};
 
-    BatchLoader batch_loader{files, BATCH_SIZE, 256};
-
-    DataSet validation_set = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\generated_0.txt.bin)");
-//    DataSet test = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\repaired_generated_0.txt.bin)");
-//    test.positions.erase(
-//        std::remove_if(
-//            test.positions.begin(),
-//            test.positions.end(),
-//            [](const Position& s){return s.getPieceCount()<2;}),
-//        test.positions.end());
+//    auto test = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\shuffled_generated_0.txt.bin)");
+//    for(int i = 0; i < 100; i++){
+//        std::cout << writeFen(test.positions[i], true) << std::endl;
+//    }
+//    exit(-1);
 //    write("test.bin", test);
 //    DataSet test2 = read<BINARY>("test.bin");
 //    test2.positions.erase(
@@ -311,8 +302,6 @@ int main(int argc, char* argv[]) {
 //            [](const Position& s){return s.getPieceCount()<2;}),
 //        test2.positions.end());
 //    write("test2.bin",test);
-//
-//    exit(-1);
 
     // ----------------------------------------------- BATCH PREPARATION ------------------------------------------------------------
 
@@ -326,10 +315,10 @@ int main(int argc, char* argv[]) {
     }
 
     // ------------------------------------------------- CSV OUTPUT ----------------------------------------------------------------
+    logging::open(path + "log2.txt");
     CSVWriter csv_writer{path + "loss2.csv"};
     csv_writer.write("epoch", "batch", "loss", "epoch loss", "exponential moving average loss");
 
-//    logging::open(path + "log.txt");
 
     // ----------------------------------------------- NETWORK STRUCTURE ------------------------------------------------------------
 
@@ -356,11 +345,12 @@ int main(int argc, char* argv[]) {
 //    computeScalars(network, positions);
 //    exit(-1);
     // ----------------------------------------------- TRAINING ------------------------------------------------------------
-    for(int epoch = 0; epoch < 4; epoch ++){
+    network.loadWeights(network_path + "38.nn");
+    float moving_loss    = -1;
+    for(int epoch = 39; epoch < 1000; epoch ++){
 
         // track total epoch loss and some averaged batch loss
         float acc_epoch_loss = 0;
-        float moving_loss    = -1;
         // start time measurement
         Timer timer{};
         timer.tick();
@@ -375,7 +365,6 @@ int main(int argc, char* argv[]) {
 
             // compute batch loss
             float batch_loss   = network.batch(inputs, targets, BATCH_SIZE, true);
-//            float batch_loss = 0;
 
             // update moving loss and accumulated epoch loss
             if(moving_loss < 0)
@@ -421,43 +410,6 @@ int main(int argc, char* argv[]) {
         logging::write("train loss     : " + std::to_string(acc_epoch_loss / EPOCH_SIZE / BATCH_SIZE));
         logging::write("validation loss: " + std::to_string(val_loss / validation_set.positions.size()));
     }
-
-//    for (int i = 1; i < 20000; i++) {
-////        network.loadWeights(network_path + std::to_string(i) + ".nn");
-//
-//        int   batch_count = ceil(positions.size() / (float) BATCH_SIZE);
-//        float lossSum     = 0;
-//        auto  start       = std::chrono::system_clock::now();
-//
-//        for (int batch = 0; batch < batch_count; batch++) {
-//            // fill the inputs and outputs
-//            int   batchsize = assign_inputs_batch(positions, batch * BATCH_SIZE, inputs, targets);
-//            float loss      = network.batch(inputs, targets, batchsize, true);
-//
-//            lossSum += loss * batchsize;
-//            auto                          end  = std::chrono::system_clock::now();
-//            std::chrono::duration<double> diff = end - start;
-//            printf("\repoch# %-10d batch# %-5d/%-10d loss=%-16.12f speed=%-7d eps", i, batch, batch_count, loss, (int) ((batch * BATCH_SIZE + batchsize) / diff.count()));
-//            std::cout << std::flush;
-//        }
-//
-//        std::stringstream ss{};
-//        ss
-//                 << "epoch: " << std::left << std::setw(10) << i
-//                 << "loss: "  << std::left << std::setw(10) << lossSum / positions.size();
-//        logging::write(ss.str());
-//
-//
-//        std::cout << std::endl;
-//        std::cout << " train loss=" << lossSum / positions.size() << std::endl;
-//
-////        network.saveWeights(network_path + std::to_string(i) + "._lrdrop1.nn");
-//        network.newEpoch();
-//    }
-//    network.loadWeights("test.nn");
-//    quantitizeNetwork(network, "test.net");
-//    validateFens(network);
-//    computeScalars(network, positions);
 
     return 0;
 }

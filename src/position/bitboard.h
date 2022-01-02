@@ -133,6 +133,15 @@ inline int bitCount(BB bb, int pos){
 }
 
 /**
+ * resets the lsb in the given number and returns the result.
+ * @param number
+ * @return
+ */
+inline BB lsbReset(BB number) {
+    return number & (number - 1);
+}
+
+/**
  * find fully set groups of 4
  */
 inline BB highlightGroupsOf4(BB bb){

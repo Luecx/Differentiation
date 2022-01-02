@@ -176,7 +176,7 @@ inline Position parseFen(const std::string &fen) {
     return position;
 }
 
-inline std::string writeFen(const Position &position) {
+inline std::string writeFen(const Position &position, bool write_score = false) {
     std::stringstream ss;
 
     // we do it in the same way we read a fen.
@@ -243,6 +243,12 @@ inline std::string writeFen(const Position &position) {
     // we also add the fifty move counter and the move counter to the fen (note that we dont parse those)
     ss << " " << (int) position.m_meta.getFiftyMoveRule();
     ss << " " << (int) position.m_meta.getMoveCount();
+
+    if(write_score){
+        ss << " [";
+        ss << (position.m_result.wdl == WIN ? "1" : (position.m_result.wdl == LOSS ? "0" : "0.5"));
+        ss << "] " << position.m_result.score;
+    }
 
     return ss.str();
 }

@@ -48,11 +48,16 @@ inline void assign_input(Position& p, Input& input, Data& output) {
     Square wKingSq = p.getKingSquare<WHITE>();
     Square bKingSq = p.getKingSquare<BLACK>();
 
-    // read all the pieces
     input.indices.clear();
-    for(int i = 0; i < p.getPieceCount(); i++){
-        auto piece_index_white_pov = index(p.getSquare(i), p.m_pieces.getPiece(i), wKingSq, WHITE);
-        auto piece_index_black_pov = index(p.getSquare(i), p.m_pieces.getPiece(i), bKingSq, BLACK);
+    BB bb{p.m_occupancy};
+    int idx = 0;
+
+    while(bb){
+        Square sq  = bitscanForward(bb);
+        Piece  pc = p.m_pieces.getPiece(idx);
+
+        auto piece_index_white_pov = index(sq, pc, wKingSq, WHITE);
+        auto piece_index_black_pov = index(sq, pc, bKingSq, BLACK);
 
         if (p.m_meta.getActivePlayer() == WHITE) {
             piece_index_black_pov += 12 * 64;
@@ -62,7 +67,27 @@ inline void assign_input(Position& p, Input& input, Data& output) {
 
         input.indices.push_back(piece_index_white_pov);
         input.indices.push_back(piece_index_black_pov);
+
+        bb = lsbReset(bb);
+        idx ++;
     }
+
+//    // read all the pieces
+//    input.indices.clear();
+//    for(int i = 0; i < p.getPieceCount(); i++){
+//
+//        auto piece_index_white_pov = index(p.getSquare(i), p.m_pieces.getPiece(i), wKingSq, WHITE);
+//        auto piece_index_black_pov = index(p.getSquare(i), p.m_pieces.getPiece(i), bKingSq, BLACK);
+//
+//        if (p.m_meta.getActivePlayer() == WHITE) {
+//            piece_index_black_pov += 12 * 64;
+//        } else {
+//            piece_index_white_pov += 12 * 64;
+//        }
+//
+//        input.indices.push_back(piece_index_white_pov);
+//        input.indices.push_back(piece_index_black_pov);
+//    }
 
 }
 
@@ -70,7 +95,7 @@ inline int  assign_inputs_batch(DataSet& positions, std::vector<Input>& inputs, 
 
     auto size = std::min(positions.header.position_count - offset, inputs.size());
 
-#pragma omp parallel for schedule(auto) num_threads(UPDATE_THREADS)
+#pragma omp parallel for schedule(static) num_threads(2)
     for (int i = 0; i < size; i++) {
         assign_input(positions.positions[i + offset], inputs[i], targets[i]);
     }
