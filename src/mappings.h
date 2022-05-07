@@ -17,14 +17,16 @@ inline int index(Square psq, Piece p, Square kingSquare, Color view) {
 
     Square    relativeSquare = view == WHITE ? psq : mirrorVertically(psq);
     Color     pieceColor     = p >= BLACK_PAWN ? BLACK : WHITE;
-    PieceType pieceType      = p % 6;
+    PieceType pieceType      = p % 8;
     bool      kingSide       = (kingSquare & 7) > 3;
 
     if (kingSide) {
         relativeSquare ^= 7;
     }
 
-    return relativeSquare + (pieceColor == view) * 64 * 6 + pieceType * 64;
+    return relativeSquare
+           + (pieceColor == view) * 64 * 6
+           + pieceType * 64;
 }
 
 inline void assign_input(Position& p, Input& input, Data& output) {

@@ -4,15 +4,14 @@ LIBS     = -pthread -Wl,--whole-archive -lpthread -Wl,--no-whole-archive
 FOLDER   = bin/
 ROOT     = ./
 NAME     = Differentiation
-EXE      = $(ROOT)$(FOLDER)$(NAME)_$(MAJOR).$(MINOR)
-MINOR    = 1
-MAJOR    = 0
+EXE      = $(ROOT)$(FOLDER)$(NAME)
+
 ifeq ($(OS),Windows_NT)
     PREFIX := windows
-    SUFFIX := .dll
+    SUFFIX := .exe
 else
     PREFIX := linux
-    SUFFIX := .dll
+    SUFFIX :=
 endif
 
 WFLAGS = -std=c++17 -Wall -Wextra -Wshadow
@@ -40,10 +39,10 @@ DLLFLAGS    = -shared -fPIC
 
 native:
 	mkdir -p $(ROOT)$(FOLDER)
-	$(CC) $(CFLAGS) $(SRC) $(NATIVEFLAGS) $(OPENMPFLAGS) $(MAKROS) $(LIBS) -o $(EXE)-x64-$(PREFIX)-native$(SUFFIX)
+	$(CC) $(CFLAGS) $(SRC) $(NATIVEFLAGS) $(OPENMPFLAGS) $(MAKROS) $(LIBS) -o $(EXE)$(SUFFIX)
 
 shared:
 	mkdir -p $(ROOT)$(FOLDER)
-	$(CC) $(CFLAGS) $(SRC) $(NATIVEFLAGS) $(OPENMPFLAGS) $(DLLFLAGS) $(MAKROS) $(LIBS)
+	$(CC) $(CFLAGS) $(SRC) $(NATIVEFLAGS) $(OPENMPFLAGS) $(DLLFLAGS) $(MAKROS) $(LIBS) -o $(EXE).dll
 # -o $(EXE)-x64-$(PREFIX)-shared$(SUFFIX)
 

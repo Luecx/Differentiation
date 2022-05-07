@@ -17,12 +17,13 @@
 #include "structures/Input.h"
 #include "verify/checkGradients.h"
 #include "dataset/shuffle.h"
+#include "activations/Linear.h"
 
 #include <algorithm>
 #include <chrono>
 #include <random>
 
-constexpr int BATCH_SIZE        = 1024 * 8;
+constexpr int BATCH_SIZE        = 1024 * 16;
 constexpr int EPOCH_SIZE        = 1024 * 16;
 
 constexpr int IN_SIZE      = 12 * 64;
@@ -31,23 +32,23 @@ constexpr int OUTPUT_SIZE  = 1;
 
 using namespace dense_relative;
 
-#define INPUT_WEIGHT_MULTIPLIER  (64)
-#define HIDDEN_WEIGHT_MULTIPLIER (512)
+#define INPUT_WEIGHT_MULTIPLIER  (128)
+#define HIDDEN_WEIGHT_MULTIPLIER (128)
 
-void computeScalars(Network& network, std::vector<Position>& positions) {
+void computeScalars(Network& network, DataSet& positions) {
     Input inp {};
     Data  output {1};
     float maxHiddenActivation = 0;
     float maxOutputWeight     = std::max(network.getLayer(1)->getWeights()->max(), -network.getLayer(1)->getWeights()->min());
     int   idx                 = 0;
     Data  died                = network.getLayer(0)->getBias()->newInstance();
-    for (Position& p : positions) {
+    for (Position& p : positions.positions) {
         assign_input(p, inp, output);
         network.evaluate(inp);
         maxHiddenActivation = std::max(maxHiddenActivation, std::max(network.getThreadData(0)->output[0]->max(), -network.getThreadData(0)->output[0]->min()));
         idx += 1;
         if (idx % 100000 == 0) {
-            std::cout << idx << "   " << (1ul << 14) / maxHiddenActivation << "   " << (1ul << 14) / maxOutputWeight << std::endl;
+            std::cout << idx << "   " << (1ul << 15) / maxHiddenActivation << "   " << (1ul << 15) / maxOutputWeight << std::endl;
         }
 
         for (int i = 0; i < died.size(); i++) {
@@ -62,7 +63,8 @@ void validateFens(Network& network) {
     Input       inp {};
     Data        output {1};
 
-    std::string strings[] {"8/p4k2/1p3n1p/2pp3P/3P4/1NP2Pr1/PPN1qP2/R5K1 w - - 0 33;0.1",
+    std::string strings[] {
+        "8/p4k2/1p3n1p/2pp3P/3P4/1NP2Pr1/PPN1qP2/R5K1 w - - 0 33;0.1",
         "4rrk1/2p1b1p1/p1p3q1/4p3/2P2n1p/1P1NR2P/PB3PP1/3R1QK1 b - - 2 24;0.1",
         "r1bq1rk1/pp2b1pp/n1pp1n2/3P1p2/2P1p3/2N1P2N/PP2BPPP/R1BQ1RK1 b - - 2 10;0.1",
         "r3k2r/ppp1pp1p/2nqb1pn/3p4/4P3/2PP4/PP1NBPPP/R2QK1NR w KQkq - 1 5;0.1",
@@ -72,31 +74,41 @@ void validateFens(Network& network) {
         "8/8/1p4p1/p1p2k1p/P2npP1P/4K1P1/1P6/3R4 w - - 6 54;0.1"};
 
     for (std::string& s : strings) {
-        Position p {};
-//        p.set(s);
+        Position p = parseFen(s);
         assign_input(p, inp, output);
 
         Data* h = network.evaluate(inp);
-//        std::cout << network.getThreadData(0)->output[0][0];
+
         std::cout << s << std::endl;
-        for(int i = 0; i < 16; i++){
-            std::cout << network.getThreadData(0)->output[0]->get(i) * INPUT_WEIGHT_MULTIPLIER << "  ";
-        }
-        std::cout << std::endl;
-        for(int i = 0; i < 16; i++){
-            std::cout << network.getThreadData(0)->output[0]->get(i + HIDDEN1_SIZE) * INPUT_WEIGHT_MULTIPLIER<< "  ";
-        }
-        std::cout << std::endl;
+//        for (auto k : inp.indices) {
+//            std::cout << std::setw(10) << k;
+//        }
+//        std::cout << std::endl;
+        //        std::cout << network.getThreadData(0)->output[0][0];
+//        for (int i = 0; i < 16; i++) {
+//            std::cout << network.getThreadData(0)->output[0]->get(i) * INPUT_WEIGHT_MULTIPLIER << "  ";
+//        }
+//        std::cout << std::endl;
+//        for (int i = 0; i < 16; i++) {
+//            std::cout << network.getThreadData(0)->output[0]->get(i + HIDDEN1_SIZE) * INPUT_WEIGHT_MULTIPLIER << "  ";
+//        }
+//        std::cout << std::endl;
+//        float sum = 0;
+//        for(int i = 0; i < HIDDEN1_SIZE * 2; i++){
+//            float weight = network.getLayer(1)->getWeights()->get(i) * HIDDEN_WEIGHT_MULTIPLIER;
+//            float activa = network.getThreadData(0)->output[0]->get(i) * INPUT_WEIGHT_MULTIPLIER;
+//            sum += weight * activa;
+//            std::cout << std::setw(10) << weight << "   " << std::setw(10) << activa << "    " << std::setw(10) << sum << std::endl;
+//        }
 
         std::cout << *h << std::endl;
-        exit(-1);
     }
 }
 
 void quantitizeNetwork(Network& network, const std::string& output) {
 
-    int16_t inputWeights[IN_SIZE][HIDDEN1_SIZE] {};
-    int16_t hiddenWeights[OUTPUT_SIZE][HIDDEN1_SIZE] {};
+    int16_t inputWeights    [IN_SIZE][HIDDEN1_SIZE] {};
+    int16_t hiddenWeights   [OUTPUT_SIZE][HIDDEN1_SIZE*2] {};
     int16_t inputBias[HIDDEN1_SIZE] {};
     int32_t hiddenBias[OUTPUT_SIZE] {};
 
@@ -118,8 +130,9 @@ void quantitizeNetwork(Network& network, const std::string& output) {
     // read weights
     memoryIndex = 0;
     for (auto & hiddenWeight : hiddenWeights) {
-        for (int i = 0; i < HIDDEN1_SIZE; i++) {
+        for (int i = 0; i < HIDDEN1_SIZE*2; i++) {
             float value         = network.getLayer(1)->getWeights()->get(memoryIndex++);
+            std::cout << i << " " << value << std::endl;
             hiddenWeight[i] = round(value * HIDDEN_WEIGHT_MULTIPLIER);
         }
     }
@@ -135,7 +148,7 @@ void quantitizeNetwork(Network& network, const std::string& output) {
     FILE* f = fopen(output.c_str(), "wb");
     fwrite(inputWeights, sizeof(int16_t), IN_SIZE * HIDDEN1_SIZE, f);
     fwrite(inputBias, sizeof(int16_t), HIDDEN1_SIZE, f);
-    fwrite(hiddenWeights, sizeof(int16_t), HIDDEN1_SIZE * OUTPUT_SIZE, f);
+    fwrite(hiddenWeights, sizeof(int16_t), 2 * HIDDEN1_SIZE * OUTPUT_SIZE, f);
     fwrite(hiddenBias, sizeof(int32_t), OUTPUT_SIZE, f);
     fclose(f);
 }
@@ -281,12 +294,12 @@ int main(int argc, char* argv[]) {
 
     // ----------------------------------------------- LOADING DATA ------------------------------------------------------------
     std::vector<std::string> files {};
-    for(int i = 4; i < 96; i++){
-        files.push_back(R"(H:\Koivisto Resourcen\Training Data\shuffled_generated_)" + std::to_string(i) + ".txt.bin");
+    for(int i = 1; i < 96; i++){
+        files.push_back(R"(H:\Koivisto Resourcen\Training Data 7.9\shuffled_generated_)" + std::to_string(i) + ".txt.bin");
     }
-    DataSet validation_set = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\shuffled_generated_0.txt.bin)");
+    DataSet validation_set = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data 7.9\shuffled_generated_0.txt.bin)");
 
-    BatchLoader batch_loader{files, BATCH_SIZE, 4096};
+    BatchLoader batch_loader{files, BATCH_SIZE, 1};
 
 //    auto test = read<BINARY>(R"(H:\Koivisto Resourcen\Training Data\shuffled_generated_0.txt.bin)");
 //    for(int i = 0; i < 100; i++){
@@ -315,15 +328,15 @@ int main(int argc, char* argv[]) {
     }
 
     // ------------------------------------------------- CSV OUTPUT ----------------------------------------------------------------
-    logging::open(path + "log2.txt");
-    CSVWriter csv_writer{path + "loss2.csv"};
-    csv_writer.write("epoch", "batch", "loss", "epoch loss", "exponential moving average loss");
+//    logging::open(path + "log.txt");
+//    CSVWriter csv_writer{path + "loss.csv"};
+//    csv_writer.write("epoch", "batch", "loss", "epoch loss", "exponential moving average loss");
 
 
     // ----------------------------------------------- NETWORK STRUCTURE ------------------------------------------------------------
 
     auto                         l1 = new DuplicateDenseLayer<IN_SIZE, HIDDEN1_SIZE, ReLU> {64};
-    auto                         l2 = new DenseLayer         <HIDDEN1_SIZE * 2, 1, Sigmoid> {};
+    auto                         l2 = new DenseLayer         <HIDDEN1_SIZE * 2, 1, Linear> {};
     std::vector<LayerInterface*> layers {};
     layers.push_back(l1);
     layers.push_back(l2);
@@ -337,17 +350,23 @@ int main(int argc, char* argv[]) {
 
     network.logOverview();
 
+    network.loadWeights(network_path + "158.nn");
     // ----------------------------------------------- VALIDATION ------------------------------------------------------------
 //    network.loadWeights(R"(C:\Users\Luecx\CLionProjects\Differentiation\resources\networks\koi5.13_relative_768-512-1\37_gd.net)");
 //    network.loadWeights(network_path + "60.nn");
 //    quantitizeNetwork(network, network_path + "42.net");
-//    validateFens(network);
-//    computeScalars(network, positions);
-//    exit(-1);
+//    network.getLayer(0)->getWeights()->scale(1/7.0);
+//    network.getLayer(0)->getBias()->scale(1 / 7.0);
+//    network.getLayer(1)->getWeights()->scale(7.0);
+    //    computeScalars(network, validation_set);
+//    quantitizeNetwork(network, network_path + "158.net");
+    validateFens(network);
+    exit(-1);
+
     // ----------------------------------------------- TRAINING ------------------------------------------------------------
-    network.loadWeights(network_path + "38.nn");
+    network.loadWeights(network_path + "32.nn");
     float moving_loss    = -1;
-    for(int epoch = 39; epoch < 1000; epoch ++){
+    for(int epoch = 33; epoch < 1000; epoch ++){
 
         // track total epoch loss and some averaged batch loss
         float acc_epoch_loss = 0;
@@ -393,7 +412,7 @@ int main(int argc, char* argv[]) {
             std::cout << std::flush;
 
             // write to csv
-            csv_writer.write(epoch, batch, batch_loss, acc_epoch_loss / passed_entries, moving_loss);
+//            csv_writer.write(epoch, batch, batch_loss, acc_epoch_loss / passed_entries, moving_loss);
         }
         network.saveWeights(network_path + std::to_string(epoch) + ".nn");
 
